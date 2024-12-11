@@ -1,8 +1,4 @@
-use anyhow::format_err as any_err;
-use std::io::BufRead;
-use std::io::Seek;
-
-use crate::EbmlReader;
+use crate::imports::*;
 
 #[ allow (dead_code) ]
 #[ derive (Debug) ]
@@ -17,46 +13,18 @@ pub struct EbmlElem {
 	pub doc_type_extensions: Vec <EbmlDocTypeExtElem>,
 }
 
-impl EbmlElem {
-
-	pub fn read <Src: BufRead + Seek> (reader: & mut EbmlReader <Src>) -> anyhow::Result <Self> {
-		let mut version = None;
-		let mut read_version = None;
-		let mut max_id_length = None;
-		let mut max_size_length = None;
-		let mut doc_type = None;
-		let mut doc_type_version = None;
-		let mut doc_type_read_version = None;
-		let mut doc_type_extensions = Vec::new ();
-		reader.nest ();
-		while let Some ((elem_id, _)) = reader.read () ? {
-			match elem_id {
-				elem_ids::EBML_VERSION => version = Some (reader.unsigned () ?),
-				elem_ids::EBML_READ_VERSION => read_version = Some (reader.unsigned () ?),
-				elem_ids::EBML_MAX_ID_LENGTH => max_id_length = Some (reader.unsigned () ?),
-				elem_ids::EBML_MAX_SIZE_LENGTH => max_size_length = Some (reader.unsigned () ?),
-				elem_ids::EBML_DOC_TYPE => doc_type = Some (reader.string () ?),
-				elem_ids::EBML_DOC_TYPE_VERSION => doc_type_version = Some (reader.unsigned () ?),
-				elem_ids::EBML_DOC_TYPE_READ_VERSION => doc_type_read_version = Some (reader.unsigned () ?),
-				elem_ids::EBML_DOC_TYPE_EXTENSION => {
-					doc_type_extensions.push (EbmlDocTypeExtElem::read (reader) ?);
-				},
-				_ => reader.skip () ?,
-			}
-		}
-		reader.unnest () ?;
-		Ok (EbmlElem {
-			version: version.ok_or_else (|| any_err! ("Missing EBMLVersion")) ?,
-			read_version: read_version.ok_or_else (|| any_err! ("Missing EBMLReadVersion")) ?,
-			max_id_length: max_id_length.ok_or_else (|| any_err! ("Missing EBMLMaxIDLength")) ?,
-			max_size_length: max_size_length.ok_or_else (|| any_err! ("Missing EBMLMaxSizeLength")) ?,
-			doc_type: doc_type.ok_or_else (|| any_err! ("Missing DocType")) ?,
-			doc_type_version: doc_type_version.ok_or_else (|| any_err! ("Mising DocTypeVersion")) ?,
-			doc_type_read_version: doc_type_read_version.ok_or_else (|| any_err! ("Missing DocTypeReadVersion")) ?,
-			doc_type_extensions,
-		})
+impl EbmlElement for EbmlElem {
+	ebml_elem_read! {
+		spec = elems::Ebml;
+		one req version = elems::EbmlVersion;
+		one req read_version = elems::EbmlReadVersion;
+		one req max_id_length = elems::EbmlMaxIdLength;
+		one req max_size_length = elems::EbmlMaxSizeLength;
+		one req doc_type = elems::EbmlDocType;
+		one req doc_type_version = elems::EbmlDocTypeVersion;
+		one req doc_type_read_version = elems::EbmlDocTypeReadVersion;
+		mul opt doc_type_extensions = elems::EbmlDocTypeExtension;
 	}
-
 }
 
 #[ allow (dead_code) ]
@@ -66,44 +34,31 @@ pub struct EbmlDocTypeExtElem {
 	pub version: u64,
 }
 
-impl EbmlDocTypeExtElem {
-
-	pub fn read <Src: BufRead + Seek> (reader: & mut EbmlReader <Src>) -> anyhow::Result <Self> {
-		let mut name = None;
-		let mut version = None;
-		reader.nest ();
-		while let Some ((elem_id, _)) = reader.read () ? {
-			match elem_id {
-				elem_ids::EBML_DOC_TYPE_EXTENSION_NAME => name = Some (reader.string () ?),
-				elem_ids::EBML_DOC_TYPE_EXTENSION_VERSION => version = Some (reader.unsigned () ?),
-				_ => reader.skip () ?,
-			}
-		}
-		reader.unnest () ?;
-		Ok (EbmlDocTypeExtElem {
-			name: name.ok_or_else (|| any_err! ("Missing DocTypeExtensionName")) ?,
-			version: version.ok_or_else (|| any_err! ("Missing DocTypeExtensionVersion")) ?,
-		})
+impl EbmlElement for EbmlDocTypeExtElem {
+	ebml_elem_read! {
+		spec = elems::EbmlDocType;
+		one req name = elems::EbmlDocTypeExtName;
+		one req version = elems::EbmlDocTypeExtVersion;
 	}
-
 }
 
-#[ allow (dead_code) ]
-pub mod elem_ids {
+ebml_elem_spec! {
+	pub mod elems {
 
-	pub const EBML: u64 = 0x1a45dfa3;
-	pub const EBML_VERSION: u64 = 0x4286;
-	pub const EBML_READ_VERSION: u64 = 0x42f7;
-	pub const EBML_MAX_ID_LENGTH: u64 = 0x42f2;
-	pub const EBML_MAX_SIZE_LENGTH: u64 = 0x42f3;
-	pub const EBML_DOC_TYPE: u64 = 0x4282;
-	pub const EBML_DOC_TYPE_VERSION: u64 = 0x4287;
-	pub const EBML_DOC_TYPE_READ_VERSION: u64 = 0x4285;
-	pub const EBML_DOC_TYPE_EXTENSION: u64 = 0x4281;
-	pub const EBML_DOC_TYPE_EXTENSION_NAME: u64 = 0x4283;
-	pub const EBML_DOC_TYPE_EXTENSION_VERSION: u64 = 0x4284;
+		pub elem Ebml = 0x1a45dfa3, "EBML", EbmlElem;
+		pub elem EbmlVersion = 0x4286, "EBMLVersion", u64;
+		pub elem EbmlReadVersion = 0x42f7, "EBMLReadVersion", u64;
+		pub elem EbmlMaxIdLength = 0x42f2, "EBMLMaxIdLength", u64;
+		pub elem EbmlMaxSizeLength = 0x42f3, "EBMLMaxSizeLength", u64;
+		pub elem EbmlDocType = 0x4282, "DocType", String;
+		pub elem EbmlDocTypeVersion = 0x4287, "DocTypeVersion", u64;
+		pub elem EbmlDocTypeReadVersion = 0x4285, "DocTypeReadVersion", u64;
+		pub elem EbmlDocTypeExtension = 0x4281, "DocTypeExtension", EbmlDocTypeExtElem;
+		pub elem EbmlDocTypeExtName = 0x4283, "DocTypeExtensionName", String;
+		pub elem EbmlDocTypeExtVersion = 0x4284, "DocTypeExtensionVersion", u64;
 
-	pub const CRC_32: u64 = 0xbf;
-	pub const VOID: u64 = 0xec;
+		pub elem Crc32 = 0xbf, "CRC-32", Blob;
+		pub elem Void = 0xec, "Void", Blob;
 
+	}
 }
