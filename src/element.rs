@@ -344,6 +344,7 @@ macro_rules! ebml_elem_read {
 		spec = $parent_spec:expr;
 		$( $num:tt $req:tt $name:ident = $spec:expr $( , $def:expr )?; )*
 	) => {
+		#[ inline (never) ]
 		fn read (reader: & mut dyn EbmlRead) -> anyhow::Result <Self> {
 			$( ebml_elem_read! (@decl $num $req $name = $spec $( , $def )? ); )*
 			reader.nest ();

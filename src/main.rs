@@ -34,10 +34,10 @@ fn main () -> anyhow::Result <()> {
 					let seek_head = matroska::SeekHeadElem::read (& mut reader) ?;
 					println! ("{seek_head:#?}");
 				},
-				matroska::elems::SEGMENT_INFO => {
+				matroska::elems::INFO => {
 					println! ("Got segment info: start=0x{elem_pos:x}, len={elem_len}");
-					let seg_info = matroska::SegmentInfoElem::read (& mut reader) ?;
-					println! ("{seg_info:#?}");
+					let info = matroska::InfoElem::read (& mut reader) ?;
+					println! ("{info:#?}");
 				},
 				matroska::elems::TRACKS => {
 					println! ("Got tracks: start=0x{elem_pos:x}, len={elem_len}");
@@ -48,6 +48,16 @@ fn main () -> anyhow::Result <()> {
 					println! ("Got chapters: start=0x{elem_pos:x}, len={elem_len}");
 					let chapters = matroska::ChaptersElem::read (& mut reader) ?;
 					println! ("{chapters:#?}");
+				},
+				matroska::elems::TAGS => {
+					println! ("Got tags: start=0x{elem_pos:x}, len={elem_len}");
+					let tags = matroska::TagsElem::read (& mut reader) ?;
+					println! ("{tags:#?}");
+				},
+				matroska::elems::CUES => {
+					println! ("Got cues: start=0x{elem_pos:x}, len={elem_len}");
+					let cues = matroska::CuesElem::read (& mut reader) ?;
+					println! ("{cues:#?}");
 				},
 				_ => {
 					println! ("Skipped: id=0x{elem_id:x}, pos=0x{elem_pos:x}, len={elem_len}");

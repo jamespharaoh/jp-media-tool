@@ -10,7 +10,8 @@ pub trait EbmlRead {
 
 	fn unsigned (& mut self) -> io::Result <u64> {
 		let data = self.data () ?;
-		if 8 < data.len () { return Err (io::ErrorKind::InvalidData.into ()) }
+		if 8 < data.len () {
+			return Err (io::ErrorKind::InvalidData.into ()) }
 		let mut bytes = [0; 8];
 		let skip = 8 - data.len ();
 		for (src, dst) in iter::zip (data, & mut bytes [skip .. ]) { * dst = src }
@@ -77,15 +78,23 @@ impl <Src: BufRead + Seek> EbmlReader <Src> {
 	fn read_elem_id (& mut self) -> io::Result <u64> {
 		let mut buf = [0; 8];
 		self.read_bytes (& mut buf [0 .. 1]) ?;
-		let num_bytes = buf [0].leading_zeros () + 1;
-		if num_bytes < 1 || 8 < num_bytes {
-			return Err (io::ErrorKind::InvalidData.into ());
+		if buf [0] == 0x00 {
+			return Err (io::Error::new (
+				io::ErrorKind::InvalidData,
+				"Invalid first byte of element id: 0x00"));
 		}
+		let num_bytes = buf [0].leading_zeros () + 1;
+		debug_assert! (1 <= num_bytes && num_bytes < 9);
 		self.read_bytes (& mut buf [1 .. num_bytes as usize]) ?;
 		let mut val = 0_u64;
 		for & byte in buf [0 .. num_bytes as usize].iter () {
 			val <<= 8;
 			val |= byte as u64;
+		}
+		if val == 0 {
+			return Err (io::Error::new (
+				io::ErrorKind::InvalidData,
+				"Invalid element id: 0x00"));
 		}
 		Ok (val)
 	}
@@ -107,9 +116,6 @@ impl <Src: BufRead + Seek> EbmlReader <Src> {
 		for & byte in buf [0 .. num_bytes as usize].iter () {
 			val <<= 8;
 			val |= byte as u64;
-		}
-		if val == 0 {
-			return Err (io::ErrorKind::InvalidData.into ());
 		}
 		if val == (1 << num_bytes * 7) - 1 {
 			return Ok (None);
@@ -149,7 +155,11 @@ impl <Src: BufRead + Seek> EbmlRead for EbmlReader <Src> {
 		let elem_len = self.read_elem_len () ?.ok_or (io::ErrorKind::InvalidData) ?;
 		self.next_pos = Some (self.pos + elem_len);
 		if let Some (& limit) = self.posns.last () {
-			if limit < self.pos { return Err (io::ErrorKind::InvalidData) ? }
+			if limit < self.pos {
+				return Err (io::Error::new (
+					io::ErrorKind::InvalidData,
+					"Read past end of container"));
+			}
 		}
 		Ok (Some ((elem_id, elem_pos, elem_len)))
 	}
