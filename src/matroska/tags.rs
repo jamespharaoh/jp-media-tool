@@ -6,7 +6,7 @@ pub struct TagsElem {
 	pub tags: Vec <TagElem>,
 }
 
-impl EbmlElement for TagsElem {
+impl EbmlValue for TagsElem {
 	ebml_elem_read! {
 		spec = elems::Tags;
 		mul opt tags = elems::Tag;
@@ -20,7 +20,7 @@ pub struct TagElem {
 	pub simple_tags: Vec <SimpleTagElem>,
 }
 
-impl EbmlElement for TagElem {
+impl EbmlValue for TagElem {
 	ebml_elem_read! {
 		spec = elems::Tag;
 		one req targets = elems::Targets;
@@ -39,7 +39,7 @@ pub struct TargetsElem {
 	pub attachment_uids: Vec <u64>,
 }
 
-impl EbmlElement for TargetsElem {
+impl EbmlValue for TargetsElem {
 	ebml_elem_read! {
 		spec = elems::Targets;
 		one def type_value = elems::TargetTypeValue, & 50;
@@ -62,7 +62,7 @@ pub struct SimpleTagElem {
 	pub binary: Option <Blob>,
 }
 
-impl EbmlElement for SimpleTagElem {
+impl EbmlValue for SimpleTagElem {
 	ebml_elem_read! {
 		spec = elems::SimpleTag;
 		one req name = elems::TagName;

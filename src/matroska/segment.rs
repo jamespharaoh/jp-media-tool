@@ -6,7 +6,7 @@ pub struct SeekHeadElem {
 	pub seeks: Vec <SeekElem>,
 }
 
-impl EbmlElement for SeekHeadElem {
+impl EbmlValue for SeekHeadElem {
 	ebml_elem_read! {
 		spec = elems::SeekHead;
 		mul req seeks = elems::Seek;
@@ -20,7 +20,7 @@ pub struct SeekElem {
 	pub position: u64,
 }
 
-impl EbmlElement for SeekElem {
+impl EbmlValue for SeekElem {
 	ebml_elem_read! {
 		spec = elems::Seek;
 		one req id = elems::SeekId;
@@ -47,24 +47,7 @@ pub struct InfoElem {
 	pub writing_app: String,
 }
 
-#[ allow (dead_code) ]
-#[ derive (Debug) ]
-pub struct ChapterTranslateElem {
-	pub id: Vec <u8>,
-	pub codec: u64,
-	pub edition_uids: Vec <u64>,
-}
-
-impl EbmlElement for ChapterTranslateElem {
-	ebml_elem_read! {
-		spec = elems::ChapterTranslate;
-		one req id = elems::ChapterTranslateId;
-		one req codec = elems::ChapterTranslateCodec;
-		mul opt edition_uids = elems::ChapterTranslateEditionUid;
-	}
-}
-
-impl EbmlElement for InfoElem {
+impl EbmlValue for InfoElem {
 	ebml_elem_read! {
 		spec = elems::Info;
 		one opt uuid = elems::SegmentUuid;
@@ -81,6 +64,23 @@ impl EbmlElement for InfoElem {
 		one opt title = elems::Title;
 		one req muxing_app = elems::MuxingApp;
 		one req writing_app = elems::WritingApp;
+	}
+}
+
+#[ allow (dead_code) ]
+#[ derive (Debug) ]
+pub struct ChapterTranslateElem {
+	pub id: Vec <u8>,
+	pub codec: u64,
+	pub edition_uids: Vec <u64>,
+}
+
+impl EbmlValue for ChapterTranslateElem {
+	ebml_elem_read! {
+		spec = elems::ChapterTranslate;
+		one req id = elems::ChapterTranslateId;
+		one req codec = elems::ChapterTranslateCodec;
+		mul opt edition_uids = elems::ChapterTranslateEditionUid;
 	}
 }
 

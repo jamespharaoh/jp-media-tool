@@ -15,9 +15,10 @@ pub use std::marker::PhantomData;
 
 pub use crate::ebml_elem_spec;
 pub use crate::ebml_elem_read;
-pub use crate::element::Blob;
-pub use crate::element::EbmlElement;
-pub use crate::element::ElementReader;
-pub use crate::element::ElementReaderFactory;
-pub use crate::reader::EbmlRead;
-pub use crate::reader::EbmlReader;
+pub use crate::ebml::reader::Blob;
+pub use crate::ebml::reader::BlobRef;
+pub use crate::ebml::reader::EbmlRead;
+pub use crate::ebml::reader::EbmlReader;
+pub use crate::ebml::reader::EbmlValue;
+pub use crate::ebml::spec::FieldReader as _;
+pub use crate::ebml::spec::FieldReaderFactory as _;

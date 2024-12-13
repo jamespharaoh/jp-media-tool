@@ -1,9 +1,18 @@
 use crate::imports::*;
 
+pub type Blob = Vec <u8>;
+
+#[ derive (Debug) ]
+pub struct BlobRef {
+	pub start: u64,
+	pub end: u64,
+}
+
 pub trait EbmlRead {
 
 	fn read (& mut self) -> io::Result <Option <(u64, u64, u64)>>;
 	fn data (& mut self) -> io::Result <Vec <u8>>;
+	fn data_ref (& mut self) -> io::Result <BlobRef>;
 	fn skip (& mut self) -> io::Result <()>;
 	fn nest (& mut self);
 	fn unnest (& mut self) -> io::Result <()>;
@@ -170,6 +179,13 @@ impl <Src: BufRead + Seek> EbmlRead for EbmlReader <Src> {
 		Ok (buf)
 	}
 
+	fn data_ref (& mut self) -> io::Result <BlobRef> {
+		let start = self.pos;
+		let end = self.next_pos.take ().unwrap ();
+		self.set_pos (end) ?;
+		Ok (BlobRef { start, end })
+	}
+
 	fn skip (& mut self) -> io::Result <()> {
 		let next_pos = self.next_pos.take ().unwrap ();
 		self.set_pos (next_pos) ?;
@@ -187,4 +203,44 @@ impl <Src: BufRead + Seek> EbmlRead for EbmlReader <Src> {
 		Ok (())
 	}
 
+}
+
+pub trait EbmlValue: Sized {
+	fn read (reader: & mut dyn EbmlRead) -> anyhow::Result <Self>;
+}
+
+impl EbmlValue for bool {
+	fn read (reader: & mut dyn EbmlRead) -> anyhow::Result <bool> {
+		Ok (reader.boolean () ?)
+	}
+}
+
+impl EbmlValue for u64 {
+	fn read (reader: & mut dyn EbmlRead) -> anyhow::Result <u64> {
+		Ok (reader.unsigned () ?)
+	}
+}
+
+impl EbmlValue for f64 {
+	fn read (reader: & mut dyn EbmlRead) -> anyhow::Result <f64> {
+		Ok (reader.float () ?)
+	}
+}
+
+impl EbmlValue for Blob {
+	fn read (reader: & mut dyn EbmlRead) -> anyhow::Result <Blob> {
+		Ok (reader.binary () ?)
+	}
+}
+
+impl EbmlValue for String {
+	fn read (reader: & mut dyn EbmlRead) -> anyhow::Result <String> {
+		Ok (reader.string () ?)
+	}
+}
+
+impl EbmlValue for BlobRef {
+	fn read (reader: & mut dyn EbmlRead) -> anyhow::Result <Self> {
+		Ok (reader.data_ref () ?)
+	}
 }

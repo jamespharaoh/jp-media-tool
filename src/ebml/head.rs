@@ -13,7 +13,7 @@ pub struct EbmlElem {
 	pub doc_type_extensions: Vec <EbmlDocTypeExtElem>,
 }
 
-impl EbmlElement for EbmlElem {
+impl EbmlValue for EbmlElem {
 	ebml_elem_read! {
 		spec = elems::Ebml;
 		one req version = elems::EbmlVersion;
@@ -34,7 +34,7 @@ pub struct EbmlDocTypeExtElem {
 	pub version: u64,
 }
 
-impl EbmlElement for EbmlDocTypeExtElem {
+impl EbmlValue for EbmlDocTypeExtElem {
 	ebml_elem_read! {
 		spec = elems::EbmlDocType;
 		one req name = elems::EbmlDocTypeExtName;

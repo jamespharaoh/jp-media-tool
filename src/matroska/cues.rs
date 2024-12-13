@@ -6,7 +6,7 @@ pub struct CuesElem {
 	pub points: Vec <CuePointElem>,
 }
 
-impl EbmlElement for CuesElem {
+impl EbmlValue for CuesElem {
 	ebml_elem_read! {
 		spec = elems::Cues;
 		mul req points = elems::CuePoint;
@@ -20,7 +20,7 @@ pub struct CuePointElem {
 	pub track_positions: Vec <CueTrackPositionsElem>,
 }
 
-impl EbmlElement for CuePointElem {
+impl EbmlValue for CuePointElem {
 	ebml_elem_read! {
 		spec = elems::CuePoint;
 		one req time = elems::CueTime;
@@ -40,7 +40,7 @@ pub struct CueTrackPositionsElem {
 	pub references: Vec <CueReferenceElem>,
 }
 
-impl EbmlElement for CueTrackPositionsElem {
+impl EbmlValue for CueTrackPositionsElem {
 	ebml_elem_read! {
 		spec = elems::CueTrackPositions;
 		one req track = elems::CueTrack;
@@ -59,7 +59,7 @@ pub struct CueReferenceElem {
 	pub ref_time: u64,
 }
 
-impl EbmlElement for CueReferenceElem {
+impl EbmlValue for CueReferenceElem {
 	ebml_elem_read! {
 		spec = elems::CueReference;
 		one req ref_time = elems::CueRefTime;

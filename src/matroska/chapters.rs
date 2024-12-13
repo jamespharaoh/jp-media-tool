@@ -6,7 +6,7 @@ pub struct ChaptersElem {
 	editions: Vec <EditionEntryElem>,
 }
 
-impl EbmlElement for ChaptersElem {
+impl EbmlValue for ChaptersElem {
 	ebml_elem_read! {
 		spec = elems::Chapters;
 		mul req editions = elems::EditionEntry;
@@ -24,7 +24,7 @@ pub struct EditionEntryElem {
 	pub atoms: Vec <ChapterAtomElem>,
 }
 
-impl EbmlElement for EditionEntryElem {
+impl EbmlValue for EditionEntryElem {
 	ebml_elem_read! {
 		spec = elems::EditionEntry;
 		one opt uid = elems::EditionUid;
@@ -40,7 +40,7 @@ impl EbmlElement for EditionEntryElem {
 pub struct EditionDisplayElem {
 }
 
-impl EbmlElement for EditionDisplayElem {
+impl EbmlValue for EditionDisplayElem {
 	ebml_elem_read! {
 		spec = elems::EditionDisplay;
 	}
@@ -63,7 +63,7 @@ pub struct ChapterAtomElem {
 	pub displays: Vec <ChapterDisplayElem>,
 }
 
-impl EbmlElement for ChapterAtomElem {
+impl EbmlValue for ChapterAtomElem {
 	ebml_elem_read! {
 		spec = elems::ChapterAtom;
 		one req uid = elems::ChapterUid;
@@ -85,7 +85,7 @@ impl EbmlElement for ChapterAtomElem {
 pub struct ChapterTrackElem {
 }
 
-impl EbmlElement for ChapterTrackElem {
+impl EbmlValue for ChapterTrackElem {
 	ebml_elem_read! {
 		spec = elems::ChapterTrack;
 	}
@@ -100,7 +100,7 @@ pub struct ChapterDisplayElem {
 	pub countries: Vec <String>,
 }
 
-impl EbmlElement for ChapterDisplayElem {
+impl EbmlValue for ChapterDisplayElem {
 	ebml_elem_read! {
 		spec = elems::ChapterDisplay;
 		one req string = elems::ChapString;

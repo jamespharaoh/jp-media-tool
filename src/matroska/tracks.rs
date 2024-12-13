@@ -6,7 +6,7 @@ pub struct TracksElem {
 	pub tracks: Vec <TrackEntryElem>,
 }
 
-impl EbmlElement for TracksElem {
+impl EbmlValue for TracksElem {
 	ebml_elem_read! {
 		spec = elems::Tracks;
 		mul req tracks = elems::TrackEntry;
@@ -47,7 +47,7 @@ pub struct TrackEntryElem {
 	pub encodings: Option <ContentEncodingsElem>,
 }
 
-impl EbmlElement for TrackEntryElem {
+impl EbmlValue for TrackEntryElem {
 	ebml_elem_read! {
 		spec = elems::TrackEntry;
 		one req number = elems::TrackNumber;
@@ -85,24 +85,36 @@ impl EbmlElement for TrackEntryElem {
 #[ allow (dead_code) ]
 #[ derive (Debug) ]
 pub struct BlockAdditionMappingElem {
-	// TODO
+	pub id_value: Option <u64>,
+	pub id_name: Option <String>,
+	pub id_type: u64,
+	pub id_extra_data: Option <Blob>,
 }
 
-impl EbmlElement for BlockAdditionMappingElem {
+impl EbmlValue for BlockAdditionMappingElem {
 	ebml_elem_read! {
 		spec = elems::BlockAdditionMapping;
+		one opt id_value = elems::BlockAddIdValue;
+		one opt id_name = elems::BlockAddIdName;
+		one def id_type = elems::BlockAddIdType, & 0;
+		one opt id_extra_data = elems::BlockAddIdExtraData;
 	}
 }
 
 #[ allow (dead_code) ]
 #[ derive (Debug) ]
 pub struct TrackTranslateElem {
-	// TODO
+	pub track_id: Blob,
+	pub codec: u64,
+	pub edition_uids: Vec <u64>,
 }
 
-impl EbmlElement for TrackTranslateElem {
+impl EbmlValue for TrackTranslateElem {
 	ebml_elem_read! {
 		spec = elems::TrackTranslate;
+		one req track_id = elems::TrackTranslateTrackId;
+		one req codec = elems::TrackTranslateCodec;
+		mul opt edition_uids = elems::TrackTranslateEditionUid;
 	}
 }
 
@@ -126,7 +138,7 @@ pub struct VideoElem {
 	pub colour: Option <ColourElem>,
 }
 
-impl EbmlElement for VideoElem {
+impl EbmlValue for VideoElem {
 	ebml_elem_read! {
 		spec = elems::Video;
 		one def flag_interlaced = elems::FlagInterlaced, & 0;
@@ -166,7 +178,7 @@ pub struct ColourElem {
 	pub mastering_metadata: Option <MasteringMetadataElem>,
 }
 
-impl EbmlElement for ColourElem {
+impl EbmlValue for ColourElem {
 	ebml_elem_read! {
 		spec = elems::Colour;
 		one def matrix_coefficients = elems::MatrixCoefficients, & 2;
@@ -201,7 +213,7 @@ pub struct MasteringMetadataElem {
 	pub luminance_min: Option <f64>,
 }
 
-impl EbmlElement for MasteringMetadataElem {
+impl EbmlValue for MasteringMetadataElem {
 	ebml_elem_read! {
 		spec = elems::MasteringMetadata;
 		one opt primary_r_chromaticity_x = elems::PrimaryRChromaticityX;
@@ -227,7 +239,7 @@ pub struct AudioElem {
 	pub emphasis: u64,
 }
 
-impl EbmlElement for AudioElem {
+impl EbmlValue for AudioElem {
 	ebml_elem_read! {
 		spec = elems::Audio;
 		one def sampling_frequency = elems::SamplingFrequency, & 8000.0;
@@ -243,7 +255,7 @@ pub struct TrackOperationElem {
 	// TODO
 }
 
-impl EbmlElement for TrackOperationElem {
+impl EbmlValue for TrackOperationElem {
 	ebml_elem_read! {
 		spec = elems::TrackOperation;
 	}
@@ -254,7 +266,7 @@ pub struct ContentEncodingsElem {
 	// TODO
 }
 
-impl EbmlElement for ContentEncodingsElem {
+impl EbmlValue for ContentEncodingsElem {
 	ebml_elem_read! {
 		spec = elems::ContentEncodings;
 	}

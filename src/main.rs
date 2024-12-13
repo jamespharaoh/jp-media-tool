@@ -1,8 +1,6 @@
 mod ebml;
-mod element;
 mod imports;
 mod matroska;
-mod reader;
 
 use crate::imports::*;
 
@@ -10,9 +8,9 @@ fn main () -> anyhow::Result <()> {
 	let file = BufReader::new (File::open ("test.mkv") ?);
 	let mut reader = EbmlReader::new (file) ?;
 	let (ebml_id, ebml_pos, ebml_len) = reader.read () ?.ok_or_else (|| any_err! ("No ebml element")) ?;
-	anyhow::ensure! (ebml_id == ebml::elems::EBML, "Expected EBML, got 0x{ebml_id:x}");
+	anyhow::ensure! (ebml_id == ebml::head::elems::EBML, "Expected EBML, got 0x{ebml_id:x}");
 	println! ("Got ebml: start=0x{ebml_pos:x}, len={ebml_len}");
-	let ebml = ebml::EbmlElem::read (& mut reader) ?;
+	let ebml = ebml::head::EbmlElem::read (& mut reader) ?;
 	println! ("{ebml:#?}");
 	if 1 < ebml.read_version {
 		println! ("WARNING: Unsupported EBML read version: {}", ebml.read_version);
@@ -53,6 +51,11 @@ fn main () -> anyhow::Result <()> {
 					println! ("Got tags: start=0x{elem_pos:x}, len={elem_len}");
 					let tags = matroska::TagsElem::read (& mut reader) ?;
 					println! ("{tags:#?}");
+				},
+				matroska::elems::CLUSTER => {
+					println! ("Got cluster: start=0x{elem_pos:x}, len={elem_len}");
+					let cluster = matroska::ClusterElem::read (& mut reader) ?;
+					println! ("{cluster:#?}");
 				},
 				matroska::elems::CUES => {
 					println! ("Got cues: start=0x{elem_pos:x}, len={elem_len}");

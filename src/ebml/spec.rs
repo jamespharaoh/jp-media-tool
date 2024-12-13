@@ -1,9 +1,5 @@
 use crate::imports::*;
 
-pub trait EbmlElement: Sized {
-	fn read (reader: & mut dyn EbmlRead) -> anyhow::Result <Self>;
-}
-
 pub trait ElementSpec {
 	fn id (& self) -> u64;
 	fn name (& self) -> & 'static str;
@@ -27,19 +23,19 @@ impl <Val> ElementSpec for ElementSpecImpl <Val> {
 	fn name (& self) -> & 'static str { self.name }
 }
 
-pub trait ElementReader {
+pub trait FieldReader {
 	type Val;
 	fn read (& mut self, ebml_id: u64, reader: & mut dyn EbmlRead) -> anyhow::Result <bool>;
 	fn get (self) -> anyhow::Result <Self::Val>;
 }
 
-pub struct ElementReaderOneOpt <Val> {
+pub struct FieldReaderOneOpt <Val> {
 	pub id: u64,
 	pub name: & 'static str,
 	pub value: Option <Val>,
 }
 
-impl <Val: ElementValue> ElementReaderOneOpt <Val> {
+impl <Val: EbmlValue> FieldReaderOneOpt <Val> {
 	fn new (spec: & impl ElementSpec) -> Self {
 		Self {
 			id: spec.id (),
@@ -49,12 +45,12 @@ impl <Val: ElementValue> ElementReaderOneOpt <Val> {
 	}
 }
 
-impl <Val: ElementValue> ElementReader for ElementReaderOneOpt <Val> {
+impl <Val: EbmlValue> FieldReader for FieldReaderOneOpt <Val> {
 	type Val = Option <Val>;
 	fn read (& mut self, ebml_id: u64, reader: & mut dyn EbmlRead) -> anyhow::Result <bool> {
 		if ebml_id != self.id { return Ok (false) }
 		any_ensure! (self.value.is_none (), "Repeated {}", self.name);
-		self.value = Some (Val::get (reader) ?);
+		self.value = Some (Val::read (reader) ?);
 		Ok (true)
 	}
 	fn get (self) -> anyhow::Result <Option <Val>> {
@@ -62,13 +58,13 @@ impl <Val: ElementValue> ElementReader for ElementReaderOneOpt <Val> {
 	}
 }
 
-pub struct ElementReaderOneReq <Val: ElementValue> {
+pub struct FieldReaderOneReq <Val: EbmlValue> {
 	pub id: u64,
 	pub name: & 'static str,
 	pub value: Option <Val>,
 }
 
-impl <Val: ElementValue> ElementReaderOneReq <Val> {
+impl <Val: EbmlValue> FieldReaderOneReq <Val> {
 	fn new (spec: & impl ElementSpec) -> Self {
 		Self {
 			id: spec.id (),
@@ -78,12 +74,12 @@ impl <Val: ElementValue> ElementReaderOneReq <Val> {
 	}
 }
 
-impl <Val: ElementValue> ElementReader for ElementReaderOneReq <Val> {
+impl <Val: EbmlValue> FieldReader for FieldReaderOneReq <Val> {
 	type Val = Val;
 	fn read (& mut self, ebml_id: u64, reader: & mut dyn EbmlRead) -> anyhow::Result <bool> {
 		if ebml_id != self.id { return Ok (false) }
 		any_ensure! (self.value.is_none (), "Repeated {}", self.name);
-		self.value = Some (Val::get (reader) ?);
+		self.value = Some (Val::read (reader) ?);
 		Ok (true)
 	}
 	fn get (self) -> anyhow::Result <Val> {
@@ -91,14 +87,14 @@ impl <Val: ElementValue> ElementReader for ElementReaderOneReq <Val> {
 	}
 }
 
-pub struct ElementReaderOneDef <Val: ElementValue, Def: ToOwned <Owned = Val> + ?Sized + 'static> {
+pub struct FieldReaderOneDef <Val: EbmlValue, Def: ToOwned <Owned = Val> + ?Sized + 'static> {
 	pub id: u64,
 	pub name: & 'static str,
 	pub value: Option <Val>,
 	pub default: & 'static Def,
 }
 
-impl <Val: ElementValue, Def: ToOwned <Owned = Val> + ?Sized + 'static> ElementReaderOneDef <Val, Def> {
+impl <Val: EbmlValue, Def: ToOwned <Owned = Val> + ?Sized + 'static> FieldReaderOneDef <Val, Def> {
 	fn new (spec: & impl ElementSpec, default: & 'static Def) -> Self {
 		Self {
 			id: spec.id (),
@@ -109,12 +105,15 @@ impl <Val: ElementValue, Def: ToOwned <Owned = Val> + ?Sized + 'static> ElementR
 	}
 }
 
-impl <Val: ElementValue, Def: ToOwned <Owned = Val> + ?Sized + 'static> ElementReader for ElementReaderOneDef <Val, Def> {
+impl <
+	Val: EbmlValue,
+	Def: ToOwned <Owned = Val> + ?Sized + 'static,
+> FieldReader for FieldReaderOneDef <Val, Def> {
 	type Val = Val;
 	fn read (& mut self, ebml_id: u64, reader: & mut dyn EbmlRead) -> anyhow::Result <bool> {
 		if ebml_id != self.id { return Ok (false) }
 		any_ensure! (self.value.is_none (), "Repeated {}", self.name);
-		self.value = Some (Val::get (reader) ?);
+		self.value = Some (Val::read (reader) ?);
 		Ok (true)
 	}
 	fn get (self) -> anyhow::Result <Val> {
@@ -122,14 +121,14 @@ impl <Val: ElementValue, Def: ToOwned <Owned = Val> + ?Sized + 'static> ElementR
 	}
 }
 
-pub struct ElementReaderMulOpt <Val: ElementValue> {
+pub struct FieldReaderMulOpt <Val: EbmlValue> {
 	pub id: u64,
 	#[ allow (dead_code) ]
 	pub name: & 'static str,
 	pub values: Vec <Val>,
 }
 
-impl <Val: ElementValue> ElementReaderMulOpt <Val> {
+impl <Val: EbmlValue> FieldReaderMulOpt <Val> {
 	fn new (spec: & impl ElementSpec) -> Self {
 		Self {
 			id: spec.id (),
@@ -139,11 +138,11 @@ impl <Val: ElementValue> ElementReaderMulOpt <Val> {
 	}
 }
 
-impl <Val: ElementValue> ElementReader for ElementReaderMulOpt <Val> {
+impl <Val: EbmlValue> FieldReader for FieldReaderMulOpt <Val> {
 	type Val = Vec <Val>;
 	fn read (& mut self, ebml_id: u64, reader: & mut dyn EbmlRead) -> anyhow::Result <bool> {
 		if ebml_id != self.id { return Ok (false) }
-		self.values.push (Val::get (reader) ?);
+		self.values.push (Val::read (reader) ?);
 		Ok (true)
 	}
 	fn get (self) -> anyhow::Result <Vec <Val>> {
@@ -151,13 +150,13 @@ impl <Val: ElementValue> ElementReader for ElementReaderMulOpt <Val> {
 	}
 }
 
-pub struct ElementReaderMulReq <Val: ElementValue> {
+pub struct FieldReaderMulReq <Val: EbmlValue> {
 	pub id: u64,
 	pub name: & 'static str,
 	pub values: Vec <Val>,
 }
 
-impl <Val: ElementValue> ElementReaderMulReq <Val> {
+impl <Val: EbmlValue> FieldReaderMulReq <Val> {
 	fn new (spec: & impl ElementSpec) -> Self {
 		Self {
 			id: spec.id (),
@@ -167,7 +166,7 @@ impl <Val: ElementValue> ElementReaderMulReq <Val> {
 	}
 }
 
-pub struct ElementReaderMulDef <Val: ElementValue, Def: ToOwned <Owned = Val> + ?Sized + 'static> {
+pub struct FieldReaderMulDef <Val: EbmlValue, Def: ToOwned <Owned = Val> + ?Sized + 'static> {
 	pub id: u64,
 	#[ allow (dead_code) ]
 	pub name: & 'static str,
@@ -175,7 +174,7 @@ pub struct ElementReaderMulDef <Val: ElementValue, Def: ToOwned <Owned = Val> + 
 	pub default: & 'static [& 'static Def],
 }
 
-impl <Val: ElementValue, Def: ToOwned <Owned = Val> + ?Sized + 'static> ElementReaderMulDef <Val, Def> {
+impl <Val: EbmlValue, Def: ToOwned <Owned = Val> + ?Sized + 'static> FieldReaderMulDef <Val, Def> {
 	fn new (spec: & impl ElementSpec, default: & 'static [& 'static Def]) -> Self {
 		Self {
 			id: spec.id (),
@@ -186,11 +185,14 @@ impl <Val: ElementValue, Def: ToOwned <Owned = Val> + ?Sized + 'static> ElementR
 	}
 }
 
-impl <Val: ElementValue, Def: ToOwned <Owned = Val> + ?Sized + 'static> ElementReader for ElementReaderMulDef <Val, Def> {
+impl <
+	Val: EbmlValue,
+	Def: ToOwned <Owned = Val> + ?Sized + 'static,
+> FieldReader for FieldReaderMulDef <Val, Def> {
 	type Val = Vec <Val>;
 	fn read (& mut self, ebml_id: u64, reader: & mut dyn EbmlRead) -> anyhow::Result <bool> {
 		if ebml_id != self.id { return Ok (false) }
-		self.values.push (Val::get (reader) ?);
+		self.values.push (Val::read (reader) ?);
 		Ok (true)
 	}
 	fn get (self) -> anyhow::Result <Vec <Val>> {
@@ -202,11 +204,11 @@ impl <Val: ElementValue, Def: ToOwned <Owned = Val> + ?Sized + 'static> ElementR
 	}
 }
 
-impl <Val: ElementValue> ElementReader for ElementReaderMulReq <Val> {
+impl <Val: EbmlValue> FieldReader for FieldReaderMulReq <Val> {
 	type Val = Vec <Val>;
 	fn read (& mut self, ebml_id: u64, reader: & mut dyn EbmlRead) -> anyhow::Result <bool> {
 		if ebml_id != self.id { return Ok (false) }
-		self.values.push (Val::get (reader) ?);
+		self.values.push (Val::read (reader) ?);
 		Ok (true)
 	}
 	fn get (self) -> anyhow::Result <Vec <Val>> {
@@ -215,103 +217,61 @@ impl <Val: ElementValue> ElementReader for ElementReaderMulReq <Val> {
 	}
 }
 
-pub trait ElementReaderFactory <Val: ElementValue> {
+pub trait FieldReaderFactory <Val: EbmlValue> {
 
-	fn reader_one_opt (& self) -> ElementReaderOneOpt <Val>;
+	fn field_reader_one_opt (& self) -> FieldReaderOneOpt <Val>;
 
-	fn reader_one_req (& self) -> ElementReaderOneReq <Val>;
+	fn field_reader_one_req (& self) -> FieldReaderOneReq <Val>;
 
-	fn reader_one_def <Def: ToOwned <Owned = Val> + ?Sized + 'static> (
+	fn field_reader_one_def <Def: ToOwned <Owned = Val> + ?Sized + 'static> (
 		& self,
 		def: & 'static Def,
-	) -> ElementReaderOneDef <Val, Def>;
+	) -> FieldReaderOneDef <Val, Def>;
 
-	fn reader_mul_opt (& self) -> ElementReaderMulOpt <Val>;
+	fn field_reader_mul_opt (& self) -> FieldReaderMulOpt <Val>;
 
-	fn reader_mul_req (& self) -> ElementReaderMulReq <Val>;
+	fn field_reader_mul_req (& self) -> FieldReaderMulReq <Val>;
 
-	fn reader_mul_def <Def: ToOwned <Owned = Val> + ?Sized + 'static> (
+	fn field_reader_mul_def <Def: ToOwned <Owned = Val> + ?Sized + 'static> (
 		& self,
 		def: & 'static [& 'static Def],
-	) -> ElementReaderMulDef <Val, Def>;
+	) -> FieldReaderMulDef <Val, Def>;
 
 }
 
-impl <Val: ElementValue> ElementReaderFactory <Val> for ElementSpecImpl <Val> {
+impl <Val: EbmlValue> FieldReaderFactory <Val> for ElementSpecImpl <Val> {
 
-	fn reader_one_opt (& self) -> ElementReaderOneOpt <Val> {
-		ElementReaderOneOpt::new (self)
+	fn field_reader_one_opt (& self) -> FieldReaderOneOpt <Val> {
+		FieldReaderOneOpt::new (self)
 	}
 
-	fn reader_one_req (& self) -> ElementReaderOneReq <Val> {
-		ElementReaderOneReq::new (self)
+	fn field_reader_one_req (& self) -> FieldReaderOneReq <Val> {
+		FieldReaderOneReq::new (self)
 	}
 
-	fn reader_one_def <Def: ToOwned <Owned = Val> + ?Sized + 'static> (
+	fn field_reader_one_def <Def: ToOwned <Owned = Val> + ?Sized + 'static> (
 		& self,
 		def: & 'static Def,
-	) -> ElementReaderOneDef <Val, Def> {
-		ElementReaderOneDef::new (self, def)
+	) -> FieldReaderOneDef <Val, Def> {
+		FieldReaderOneDef::new (self, def)
 	}
 
-	fn reader_mul_opt (& self) -> ElementReaderMulOpt <Val> {
-		ElementReaderMulOpt::new (self)
+	fn field_reader_mul_opt (& self) -> FieldReaderMulOpt <Val> {
+		FieldReaderMulOpt::new (self)
 	}
 
-	fn reader_mul_req (& self) -> ElementReaderMulReq <Val> {
-		ElementReaderMulReq::new (self)
+	fn field_reader_mul_req (& self) -> FieldReaderMulReq <Val> {
+		FieldReaderMulReq::new (self)
 	}
 
-	fn reader_mul_def <Def: ToOwned <Owned = Val> + ?Sized + 'static> (
+	fn field_reader_mul_def <Def: ToOwned <Owned = Val> + ?Sized + 'static> (
 		& self,
 		def: & 'static [& 'static Def],
-	) -> ElementReaderMulDef <Val, Def> {
-		ElementReaderMulDef::new (self, def)
+	) -> FieldReaderMulDef <Val, Def> {
+		FieldReaderMulDef::new (self, def)
 	}
 
 }
-
-pub trait ElementValue: Sized {
-	fn get (reader: & mut dyn EbmlRead) -> anyhow::Result <Self>;
-}
-
-impl ElementValue for bool {
-	fn get (reader: & mut dyn EbmlRead) -> anyhow::Result <bool> {
-		Ok (reader.boolean () ?)
-	}
-}
-
-impl ElementValue for u64 {
-	fn get (reader: & mut dyn EbmlRead) -> anyhow::Result <u64> {
-		Ok (reader.unsigned () ?)
-	}
-}
-
-impl ElementValue for f64 {
-	fn get (reader: & mut dyn EbmlRead) -> anyhow::Result <f64> {
-		Ok (reader.float () ?)
-	}
-}
-
-impl ElementValue for Blob {
-	fn get (reader: & mut dyn EbmlRead) -> anyhow::Result <Blob> {
-		Ok (reader.binary () ?)
-	}
-}
-
-impl ElementValue for String {
-	fn get (reader: & mut dyn EbmlRead) -> anyhow::Result <String> {
-		Ok (reader.string () ?)
-	}
-}
-
-impl <Elem: EbmlElement> ElementValue for Elem {
-	fn get (reader: & mut dyn EbmlRead) -> anyhow::Result <Elem> {
-		Elem::read (reader)
-	}
-}
-
-pub type Blob = Vec <u8>;
 
 #[ macro_export ]
 macro_rules! ebml_elem_spec {
@@ -328,8 +288,8 @@ macro_rules! ebml_elem_spec {
 		$mod_vis mod $mod_name {
 			use super::*;
 			$(
-				$elem_vis const $elem_name: $crate::element::ElementSpecImpl <$elem_type> =
-					$crate::element::ElementSpecImpl::new ($elem_id, $elem_display_name);
+				$elem_vis const $elem_name: $crate::ebml::spec::ElementSpecImpl <$elem_type> =
+					$crate::ebml::spec::ElementSpecImpl::new ($elem_id, $elem_display_name);
 				paste! {
 					$elem_vis const [<$elem_name:snake:upper>]: u64 = $elem_id;
 				}
@@ -360,21 +320,21 @@ macro_rules! ebml_elem_read {
 		}
 	};
 	( @decl one req $name:ident = $spec:expr ) => {
-		let mut $name = $spec.reader_one_req ();
+		let mut $name = $spec.field_reader_one_req ();
 	};
 	( @decl one opt $name:ident = $spec:expr ) => {
-		let mut $name = $spec.reader_one_opt ();
+		let mut $name = $spec.field_reader_one_opt ();
 	};
 	( @decl one def $name:ident = $spec:expr, $default:expr ) => {
-		let mut $name = $spec.reader_one_def ($default);
+		let mut $name = $spec.field_reader_one_def ($default);
 	};
 	( @decl mul req $name:ident = $spec:expr ) => {
-		let mut $name = $spec.reader_mul_req ();
+		let mut $name = $spec.field_reader_mul_req ();
 	};
 	( @decl mul opt $name:ident = $spec:expr ) => {
-		let mut $name = $spec.reader_mul_opt ();
+		let mut $name = $spec.field_reader_mul_opt ();
 	};
 	( @decl mul def $name:ident = $spec:expr, $default:expr ) => {
-		let mut $name = $spec.reader_mul_def ($default);
+		let mut $name = $spec.field_reader_mul_def ($default);
 	};
 }
