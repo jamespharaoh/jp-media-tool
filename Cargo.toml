@@ -7,4 +7,5 @@
 [dependencies]
 
 	anyhow = "*"
+	clap = { version = "*", features = [ "derive" ] }
 	paste = "*"

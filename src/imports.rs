@@ -4,6 +4,8 @@ pub use anyhow::format_err as any_err;
 
 pub use paste::paste;
 
+pub use std::fmt;
+pub use std::fmt::Debug;
 pub use std::fs::File;
 pub use std::io;
 pub use std::io::BufRead;
@@ -12,11 +14,11 @@ pub use std::io::Seek;
 pub use std::io::SeekFrom;
 pub use std::iter;
 pub use std::marker::PhantomData;
+pub use std::path::PathBuf;
 
 pub use crate::ebml_elem_spec;
 pub use crate::ebml_elem_read;
 pub use crate::ebml::reader::Blob;
-pub use crate::ebml::reader::BlobRef;
 pub use crate::ebml::reader::EbmlRead;
 pub use crate::ebml::reader::EbmlReader;
 pub use crate::ebml::reader::EbmlValue;

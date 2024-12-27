@@ -2,6 +2,7 @@ use crate::imports::*;
 
 pub type Blob = Vec <u8>;
 
+#[ allow (dead_code) ]
 #[ derive (Debug) ]
 pub struct BlobRef {
 	pub start: u64,
@@ -25,6 +26,16 @@ pub trait EbmlRead {
 		let skip = 8 - data.len ();
 		for (src, dst) in iter::zip (data, & mut bytes [skip .. ]) { * dst = src }
 		Ok (u64::from_be_bytes (bytes))
+	}
+
+	fn signed (& mut self) -> io::Result <i64> {
+		let data = self.data () ?;
+		if 8 < data.len () {
+			return Err (io::ErrorKind::InvalidData.into ()) }
+		let mut bytes = [0xff; 8];
+		let skip = 8 - data.len ();
+		for (src, dst) in iter::zip (data, & mut bytes [skip .. ]) { * dst = src }
+		Ok (i64::from_be_bytes (bytes))
 	}
 
 	fn boolean (& mut self) -> io::Result <bool> {
@@ -218,6 +229,12 @@ impl EbmlValue for bool {
 impl EbmlValue for u64 {
 	fn read (reader: & mut dyn EbmlRead) -> anyhow::Result <u64> {
 		Ok (reader.unsigned () ?)
+	}
+}
+
+impl EbmlValue for i64 {
+	fn read (reader: & mut dyn EbmlRead) -> anyhow::Result <i64> {
+		Ok (reader.signed () ?)
 	}
 }
 
