@@ -17,6 +17,8 @@ pub trait EbmlRead {
 	fn skip (& mut self) -> io::Result <()>;
 	fn nest (& mut self);
 	fn unnest (& mut self) -> io::Result <()>;
+	fn jump (& mut self, pos: u64) -> io::Result <()>;
+	fn position (& self) -> u64;
 
 	fn unsigned (& mut self) -> io::Result <u64> {
 		let data = self.data () ?;
@@ -212,6 +214,17 @@ impl <Src: BufRead + Seek> EbmlRead for EbmlReader <Src> {
 		let pos = self.posns.pop ().unwrap ();
 		self.set_pos (pos) ?;
 		Ok (())
+	}
+
+	fn jump (& mut self, pos: u64) -> io::Result <()> {
+		self.set_pos (pos) ?;
+		self.posns.clear ();
+		self.next_pos = None;
+		Ok (())
+	}
+
+	fn position (& self) -> u64 {
+		self.pos
 	}
 
 }

@@ -3,13 +3,13 @@ use crate::imports::*;
 #[ allow (dead_code) ]
 #[ derive (Debug) ]
 pub struct TracksElem {
-	pub tracks: Vec <TrackEntryElem>,
+	pub entries: Vec <TrackEntryElem>,
 }
 
 impl EbmlValue for TracksElem {
 	ebml_elem_read! {
 		spec = elems::Tracks;
-		mul req tracks = elems::TrackEntry;
+		mul req entries = elems::TrackEntry;
 	}
 }
 
