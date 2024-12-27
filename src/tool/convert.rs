@@ -2,21 +2,6 @@ use crate::ebml;
 use crate::imports::*;
 use crate::matroska;
 
-/*
-LOGIC:
-- scan all tracks
-- identify which to keep and discard
-- construct ffmpeg command
-VIDEO:
-- just use first video track
-AUDIO:
-- keep if english, spanish, original
-- convert to opus if not already
-SUBTITLES:
-- keep if english, spanish, original
-- discard images (text only)
-*/
-
 #[ derive (Debug, clap::Args) ]
 pub struct Args {
 
@@ -37,7 +22,7 @@ pub fn invoke (args: Args) -> anyhow::Result <()> {
 
 fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 	println! ("{}", file_path.display ());
-	let Some (file_name) = file_path.file_name () else {
+	let Some (_file_name) = file_path.file_name () else {
 		any_bail! ("Specified file has no name");
 	};
 
@@ -188,10 +173,6 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 	for (src_idx, & track) in subtitle_tracks.iter ().enumerate () {
 		if ! track.codec_id.starts_with ("S_TEXT/") {
 			eprintln! ("Skip subtitle track {src_idx} ({})", track.codec_id);
-			continue;
-		}
-		if ! matches! (track.language.as_str (), "eng" | "esp") && track.flag_original != Some (true) {
-			eprintln! ("Skip subtitle track {src_idx} ({})", track_meta (track));
 			continue;
 		}
 		eprintln! ("Include subtitle track {src_idx} ({})", track_meta (track));
