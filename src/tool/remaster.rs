@@ -132,6 +132,7 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 	command.push (file_path.into ());
 
 	let mut file_name_out = file_path.file_stem ().unwrap ().to_owned ();
+	file_name_out.push ("-remaster");
 
 	// do video
 

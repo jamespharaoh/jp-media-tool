@@ -1,6 +1,4 @@
-use crate::ebml;
 use crate::imports::*;
-use crate::matroska;
 
 #[ derive (Debug, clap::Args) ]
 pub struct Args {
@@ -38,7 +36,7 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 	any_bail! ("Unknown file type");
 }
 
-fn invoke_ffmpeg (args: & Args, file_path: & Path, avi: bool) -> anyhow::Result <bool> {
+fn invoke_ffmpeg (_args: & Args, file_path: & Path, avi: bool) -> anyhow::Result <bool> {
 	let Some (file_name) = file_path.file_name () else {
 		any_bail! ("No filename in path");
 	};
