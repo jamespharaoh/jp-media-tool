@@ -4,6 +4,7 @@ pub use anyhow::format_err as any_err;
 
 pub use paste::paste;
 
+pub use std::ffi::OsStr;
 pub use std::ffi::OsString;
 pub use std::fmt;
 pub use std::fmt::Debug;
@@ -11,6 +12,7 @@ pub use std::fs::File;
 pub use std::io;
 pub use std::io::BufRead;
 pub use std::io::BufReader;
+pub use std::io::Read;
 pub use std::io::Seek;
 pub use std::io::SeekFrom;
 pub use std::iter;
