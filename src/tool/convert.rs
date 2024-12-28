@@ -8,9 +8,51 @@ pub struct Args {
 	#[ clap (name = "FILE") ]
 	files: Vec <PathBuf>,
 
-	#[ clap (long) ]
-	video_quality: Option <i64>,
+	#[ clap (long, default_value_t) ]
+	video_preset: VideoPreset,
 
+	#[ clap (long, value_parser = clap::value_parser! (i32).range (0 ..= 51)) ]
+	video_quality: Option <i32>,
+
+	#[ clap (long, value_parser = clap::value_parser! (i32).range (1 ..= 10)) ]
+	video_denoise: Option <i32>,
+
+	#[ clap (long) ]
+	video_deshake: bool,
+
+}
+
+#[derive (Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum) ]
+enum VideoPreset {
+	Ultrafast,
+	Superfast,
+	Veryfast,
+	Faster,
+	Fast,
+	#[ default ]
+	Medium,
+	Slow,
+	Slower,
+	Veryslow,
+	Placebo,
+}
+
+impl fmt::Display for VideoPreset {
+	fn fmt (& self, fmtr: & mut fmt::Formatter) -> fmt::Result {
+		let val = match * self {
+			Self::Ultrafast => "ultrafast",
+			Self::Superfast => "superfast",
+			Self::Veryfast => "veryfast",
+			Self::Faster => "faster",
+			Self::Fast => "fast",
+			Self::Medium => "medium",
+			Self::Slow => "slow",
+			Self::Slower => "slower",
+			Self::Veryslow => "veryslow",
+			Self::Placebo => "placebo",
+		};
+		fmtr.write_str (val)
+	}
 }
 
 pub fn invoke (args: Args) -> anyhow::Result <()> {
@@ -21,6 +63,7 @@ pub fn invoke (args: Args) -> anyhow::Result <()> {
 }
 
 fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
+
 	println! ("{}", file_path.display ());
 	let Some (_file_name) = file_path.file_name () else {
 		any_bail! ("Specified file has no name");
@@ -73,7 +116,6 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 		seek_head.seeks.iter ()
 			.find (|seek| seek.id == matroska::elems::TRACKS)
 	else { any_bail! ("Tracks not found in seek head") };
-	eprintln! ("{seek_tracks:#?}");
 	reader.jump (segment_pos + seek_tracks.position) ?;
 	let Some ((tracks_id, _, _)) = reader.read () ? else {
 		any_bail! ("Error reading tracks");
@@ -82,12 +124,14 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 		tracks_id == matroska::elems::TRACKS,
 		"Expected Tracks, got 0x{tracks_id}");
 	let tracks = matroska::TracksElem::read (& mut reader) ?;
-	eprintln! ("{tracks:#?}");
 
 	let mut command: Vec <OsString> = Vec::new ();
 	command.push ("ffmpeg".into ());
+	command.push ("-hide_banner".into ());
 	command.push ("-i".into ());
 	command.push (file_path.into ());
+
+	let mut file_name_out = file_path.file_stem ().unwrap ().to_owned ();
 
 	// do video
 
@@ -100,18 +144,30 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 	};
 
 	if let Some (& video_quality) = args.video_quality.as_ref () {
+		let video_preset = & args.video_preset;
+		file_name_out.push (format! ("-x265-{video_preset}-{video_quality}"));
 		command.push ("-map".into ());
 		command.push ("0:v:0".into ());
 		command.push ("-c:v:0".into ());
 		command.push ("libx265".into ());
 		command.push ("-preset:v:0".into ());
-		command.push ("medium".into ());
+		command.push (format! ("{video_preset}").into ());
 		command.push ("-crf:v:0".into ());
 		command.push (format! ("{video_quality}").into ());
 		command.push ("-pix_fmt:v:0".into ());
 		command.push ("yuv420p10le".into ());
 		command.push ("-map_metadata:s:v:0".into ());
 		command.push ("0:s:v:0".into ());
+		if args.video_deshake {
+			file_name_out.push ("-deshake");
+			command.push ("-filter:v:0".into ());
+			command.push ("deshake".into ());
+		}
+		if let Some (& video_denoise) = args.video_denoise.as_ref () {
+			file_name_out.push (format! ("-denoise-{video_denoise}"));
+			command.push ("-filter:v:0".into ());
+			command.push (format! ("hqdn3d={video_denoise}:{video_denoise}:6:6").into ());
+		}
 	} else {
 		command.push ("-map".into ());
 		command.push ("0:v:0".into ());
@@ -127,16 +183,28 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 		tracks.entries.iter ()
 			.filter (|track| track.track_type == 2)
 			.collect ();
-	let mut dest_idx = 0;
+	let mut audio_mappings = Vec::new ();
+
 	for (src_idx, & track) in audio_tracks.iter ().enumerate () {
-		let Some (track_audio) = track.audio.as_ref () else {
-			any_bail! ("Audio track has no audio settings");
-		};
-		if ! matches! (track.language.as_str (), "eng" | "esp") && track.flag_original != Some (true) {
+		if ! matches! (track.language.as_str (), "eng" | "esp")
+				&& track.flag_original != Some (true) {
 			eprintln! ("Skip audio track {src_idx} ({})", track_meta (track));
 			continue;
 		}
 		eprintln! ("Include audio track {src_idx} ({})", track_meta (track));
+		audio_mappings.push (src_idx);
+	}
+
+	if audio_mappings.is_empty () {
+		eprintln! ("Adding first audio track as none were selected");
+		audio_mappings.push (0);
+	}
+
+	for (dest_idx, & src_idx) in audio_mappings.iter ().enumerate () {
+		let track = & audio_tracks [src_idx];
+		let Some (track_audio) = track.audio.as_ref () else {
+			any_bail! ("Audio track {src_idx} has no audio settings");
+		};
 		if track.codec_id == "A_OPUS" {
 			command.push ("-map".into ());
 			command.push (format! ("0:a:{src_idx}").into ());
@@ -164,7 +232,6 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 			command.push (format! ("-map_metadata:s:a:{dest_idx}").into ());
 			command.push (format! ("0:s:a:{src_idx}").into ());
 		}
-		dest_idx += 1;
 	}
 
 	// do subtitles
@@ -189,15 +256,9 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 		dest_idx += 1;
 	}
 
-	// do output
+	// do conversion
 
-	let mut file_name_out = file_path.file_stem ().unwrap ().to_owned ();
-	if args.video_quality.is_some () {
-		file_name_out.push ("-x265-opus");
-	} else {
-		file_name_out.push ("-opus");
-	}
-	file_name_out.push (".mkv");
+	file_name_out.push ("-opus.mkv");
 	let file_path_out = file_path.with_file_name (file_name_out);
 	command.push (file_path_out.into ());
 
