@@ -64,10 +64,14 @@ pub fn invoke (args: Args) -> anyhow::Result <()> {
 
 fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 
-	println! ("{}", file_path.display ());
-	let Some (_file_name) = file_path.file_name () else {
-		any_bail! ("Specified file has no name");
+	let Some (file_name) = file_path.file_name () else {
+		any_bail! ("Specified file has no name: {}", file_path.display ());
 	};
+	if file_name.as_encoded_bytes ().windows (10).any (|sub| sub == b"-remaster")
+			&& file_name.as_encoded_bytes ().ends_with (b".mkv") {
+		return Ok (true);
+	}
+	println! ("{}", file_path.display ());
 
 	let file = BufReader::new (File::open (file_path) ?);
 	let mut reader = EbmlReader::new (file) ?;
