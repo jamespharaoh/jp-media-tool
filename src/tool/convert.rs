@@ -23,15 +23,32 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 	let buf = & buf [ .. bytes_read];
 	if 12 <= buf.len () && & buf [0 .. 4] == b"RIFF" {
 		if & buf [8 .. 12] == b"AVI " {
+			println! ("Detected AVI file format");
 			return invoke_ffmpeg (args, file_path, true);
 		}
 		any_bail! ("Unknown RIFF file type: {:02x} {:02x} {:02x} {:02x}", buf [8], buf [9], buf [10], buf [11]);
 	}
 	if 20 <= buf.len () && & buf [0 .. 3] == b"\0\0\0" && & buf [4 .. 8] == b"ftyp" {
 		if & buf [8 .. 12] == b"isom" {
+			println! ("Detected ISO base media file format");
+			return invoke_ffmpeg (args, file_path, false);
+		}
+		if & buf [8 .. 12] == b"mp41" {
+			println! ("Detected MP4 version 1 file format");
+			return invoke_ffmpeg (args, file_path, false);
+		}
+		if & buf [8 .. 12] == b"mp42" {
+			println! ("Detected MP4 version 2 file format");
 			return invoke_ffmpeg (args, file_path, false);
 		}
 		any_bail! ("Unknown ISOM file type: {:02x} {:02x} {:02x} {:02x}", buf [8], buf [9], buf [10], buf [11]);
+	}
+	if 5 <= buf.len () && & buf [0 .. 3] == [ 0x00, 0x00, 0x01, 0xba ] {
+		if buf [4] & 0xc0 == 0x40 {
+			println! ("Detected MPEG program stream file format");
+			return invoke_ffmpeg (args, file_path, true);
+		}
+		any_bail! ("Unknown MPEG program stream file type");
 	}
 	any_bail! ("Unknown file type");
 }

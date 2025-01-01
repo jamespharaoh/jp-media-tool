@@ -20,6 +20,9 @@ pub struct Args {
 	#[ clap (long) ]
 	video_deshake: bool,
 
+	#[ clap (long) ]
+	video_deinterlace: bool,
+
 }
 
 #[derive (Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, clap::ValueEnum) ]
@@ -168,10 +171,25 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 			command.push ("-filter:v:0".into ());
 			command.push ("deshake".into ());
 		}
+		let mut video_filters: Vec <OsString> = Vec::new ();
+		if args.video_deinterlace {
+			file_name_out.push ("-deinterlace");
+			video_filters.push ("yadif=0".into ());
+		}
 		if let Some (& video_denoise) = args.video_denoise.as_ref () {
 			file_name_out.push (format! ("-denoise-{video_denoise}"));
+			video_filters.push (format! ("hqdn3d={video_denoise}:{video_denoise}:6:6").into ());
+		}
+		if ! video_filters.is_empty () {
 			command.push ("-filter:v:0".into ());
-			command.push (format! ("hqdn3d={video_denoise}:{video_denoise}:6:6").into ());
+			let mut video_filters_param = OsString::new ();
+			for video_filter in video_filters {
+				if ! video_filters_param.is_empty () {
+					video_filters_param.push (", ");
+				}
+				video_filters_param.push (video_filter);
+			}
+			command.push (video_filters_param);
 		}
 	} else {
 		command.push ("-map".into ());
@@ -226,6 +244,8 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 			command.push (match track_audio.channels {
 				1 => "64k",
 				2 => "128k",
+				4 => "224k",
+				5 => "256k",
 				6 => "256k",
 				8 => "320k",
 				_ => any_bail! ("Unable to map {} audio channels", track_audio.channels),
