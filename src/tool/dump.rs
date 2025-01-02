@@ -3,33 +3,34 @@ use crate::imports::*;
 use crate::matroska;
 
 #[ derive (Debug, clap::Args) ]
+#[ command (about = "Display detailed information about a matroska (mkv) media file" )]
 pub struct Args {
 
-	#[ clap (name = "FILE") ]
+	#[ clap (name = "FILE", help = "Files to show information about") ]
 	files: Vec <PathBuf>,
 
-	#[ clap (long) ]
+	#[ clap (long, help = "Show information in chapters element") ]
 	show_chapters: bool,
 
-	#[ clap (long) ]
+	#[ clap (long, help = "Show information in cluster elements") ]
 	show_clusters: bool,
 
-	#[ clap (long) ]
+	#[ clap (long, help = "Show information in cues element") ]
 	show_cues: bool,
 
-	#[ clap (long) ]
+	#[ clap (long, help = "Show details about EBML header element") ]
 	show_head: bool,
 
-	#[ clap (long) ]
+	#[ clap (long, help = "Show information in segment info elements") ]
 	show_info: bool,
 
-	#[ clap (long) ]
+	#[ clap (long, help = "Show information in tags element") ]
 	show_tags: bool,
 
-	#[ clap (long) ]
+	#[ clap (long, help = "Show information in tracks element") ]
 	show_tracks: bool,
 
-	#[ clap (long) ]
+	#[ clap (long, help = "Show all information (generates a lot of text)") ]
 	show_all: bool,
 
 }

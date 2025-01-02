@@ -1,9 +1,10 @@
 use crate::imports::*;
 
 #[ derive (Debug, clap::Args) ]
+#[ command (about = "Convert various file formats to matroska (mkv)" )]
 pub struct Args {
 
-	#[ clap (name = "FILE") ]
+	#[ clap (name = "FILE", help = "Files to convert") ]
 	files: Vec <PathBuf>,
 
 }

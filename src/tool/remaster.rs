@@ -3,25 +3,28 @@ use crate::imports::*;
 use crate::matroska;
 
 #[ derive (Debug, clap::Args) ]
+#[ command (about = "Reencode video as x265 (optionally) and audio as opus" )]
 pub struct Args {
 
-	#[ clap (name = "FILE") ]
+	#[ clap (name = "FILE", help = "Files to remaster") ]
 	files: Vec <PathBuf>,
 
-	#[ clap (long, default_value_t) ]
+	#[ clap (long, default_value_t, help = "Preset for x265 encoder") ]
 	video_preset: VideoPreset,
 
-	#[ clap (long, value_parser = clap::value_parser! (i32).range (0 ..= 51)) ]
+	#[ clap (long, value_parser = clap::value_parser! (i32).range (0 ..= 51),
+		help = "Video quality setting (CRF) for x265 encoder (lower is better)") ]
 	video_quality: Option <i32>,
 
-	#[ clap (long, value_parser = clap::value_parser! (i32).range (1 ..= 10)) ]
+	#[ clap (long, value_parser = clap::value_parser! (i32).range (1 ..= 10),
+		help = "Apply denoise filter, value controls luma and chroma spatial parameter") ]
 	video_denoise: Option <i32>,
 
-	#[ clap (long) ]
-	video_deshake: bool,
-
-	#[ clap (long) ]
+	#[ clap (long, help = "Apply deinterlace filter" ) ]
 	video_deinterlace: bool,
+
+	#[ clap (long, help = "Apply deshake filter" ) ]
+	video_deshake: bool,
 
 }
 
@@ -166,11 +169,6 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 		command.push ("yuv420p10le".into ());
 		command.push ("-map_metadata:s:v:0".into ());
 		command.push ("0:s:v:0".into ());
-		if args.video_deshake {
-			file_name_out.push ("-deshake");
-			command.push ("-filter:v:0".into ());
-			command.push ("deshake".into ());
-		}
 		let mut video_filters: Vec <OsString> = Vec::new ();
 		if args.video_deinterlace {
 			file_name_out.push ("-deinterlace");
@@ -179,6 +177,10 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 		if let Some (& video_denoise) = args.video_denoise.as_ref () {
 			file_name_out.push (format! ("-denoise-{video_denoise}"));
 			video_filters.push (format! ("hqdn3d={video_denoise}:{video_denoise}:6:6").into ());
+		}
+		if args.video_deshake {
+			file_name_out.push ("-deshake");
+			video_filters.push ("deshake".into ());
 		}
 		if ! video_filters.is_empty () {
 			command.push ("-filter:v:0".into ());
