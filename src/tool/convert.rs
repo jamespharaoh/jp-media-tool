@@ -44,7 +44,7 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 		}
 		any_bail! ("Unknown ISOM file type: {:02x} {:02x} {:02x} {:02x}", buf [8], buf [9], buf [10], buf [11]);
 	}
-	if 5 <= buf.len () && & buf [0 .. 3] == [ 0x00, 0x00, 0x01, 0xba ] {
+	if 5 <= buf.len () && & buf [0 .. 4] == [ 0x00, 0x00, 0x01, 0xba ] {
 		if buf [4] & 0xc0 == 0x40 {
 			println! ("Detected MPEG program stream file format");
 			return invoke_ffmpeg (args, file_path, true);
@@ -76,6 +76,8 @@ fn invoke_ffmpeg (_args: & Args, file_path: & Path, avi: bool) -> anyhow::Result
 	}
 	command.push ("-i".into ());
 	command.push (file_path.into ());
+	command.push ("-map".into ());
+	command.push ("0".into ());
 	command.push ("-codec".into ());
 	command.push ("copy".into ());
 	command.push ("-format".into ());
