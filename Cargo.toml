@@ -8,4 +8,7 @@
 
 	anyhow = "*"
 	clap = { version = "*", features = [ "derive" ] }
+	itertools = "*"
 	paste = "*"
+	serde = { version = "*", features = [ "derive" ] }
+	serde_json = "*"
