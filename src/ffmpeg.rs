@@ -1,7 +1,8 @@
 use crate::imports::*;
 
 const SPIN_CHARS: & [char] = & [ '⣷', '⣯', '⣟', '⡿', '⢿', '⣻', '⣽', '⣾' ];
-const PREV_LINE: & str = "\x1b[A\x1b[2K\r";
+const ATTR_BAR: & str = "\x1b[38;5;75m\x1b[48;5;235m";
+const ATTR_RESET: & str = "\x1b[0m";
 
 pub fn convert_progress (
 	name: & str,
@@ -10,7 +11,7 @@ pub fn convert_progress (
 ) -> anyhow::Result <()> {
 	enum Status {
 		Output (io::Result <process::Output>),
-		Progress (Vec <(String, String)>),
+		Progress (Progress),
 	}
 	let (status_tx, status_rx) = mpsc::sync_channel (0);
 	let progress_listener =
@@ -34,20 +35,21 @@ pub fn convert_progress (
 			status_tx.send (Status::Output (output)).unwrap ();
 		}
 	});
-	eprintln! ("{name}");
-	let mut lines = Vec::new ();
+	let mut lines = StatusLines::new ();
 	let mut spin_idx = 0;
 	let output = loop {
 		match status_rx.recv () ? {
 			Status::Output (output) => break output ?,
 			Status::Progress (progress) => {
-				for _ in 0 .. lines.len () { eprint! ("{PREV_LINE}"); }
-				lines = progress_display (duration_micros, & progress, & mut spin_idx);
-				for line in & lines { eprintln! ("{line}"); }
+				for line in progress_display (name, duration_micros, & progress, & mut spin_idx) {
+					lines.push (line);
+				}
+				lines.flush ();
 			},
 		}
 	};
-	for _ in 0 .. lines.len () { eprint! ("{PREV_LINE}"); }
+	lines.flush ();
+	eprintln! ("{name}");
 	progress_listener.shutdown ();
 	if ! output.status.success () {
 		io::stderr ().write_all (& output.stdout) ?;
@@ -60,34 +62,61 @@ pub fn convert_progress (
     Ok (())
 }
 
+struct StatusLines {
+	num: usize,
+	buf: String,
+}
+
+impl StatusLines {
+	fn new () -> Self {
+		Self { num: 0, buf: String::new () }
+	}
+	fn push (& mut self, line: impl AsRef <str>) {
+		self.buf.push_str (line.as_ref ());
+		self.buf.push_str ("\n");
+		self.num += 1;
+	}
+	fn flush (& mut self) {
+		{
+			let mut stderr = io::stderr ();
+			let _ = stderr.write_all (self.buf.as_bytes ());
+			let _ = stderr.flush ();
+		}
+		self.buf.clear ();
+		use std::fmt::Write as _;
+		let _ = write! (& mut self.buf, "\r\x1b[{}A\x1b[J", self.num);
+		self.num = 0;
+	}
+}
+
 fn progress_display (
+	name: & str,
 	duration_micros: Option <u64>,
-	fields: & [(String, String)],
+	progress: & Progress,
 	spin_idx: & mut usize,
 ) -> Vec <String> {
 	let mut lines = Vec::new ();
-	let get = |name, default|
-		fields.iter ()
-			.find (|(k, _)| k == name)
-			.map (|(_, v)| v.as_str ())
-					.unwrap_or (default);
-	let frame = get ("frame", "");
-	let fps = get ("fps", "");
-	let bitrate = get ("bitrate", "");
-	let out_time_us: u64 = get ("out_time_us", "0").parse ().unwrap_or (0);
-	let speed = get ("speed", "");
 	let time = format! (
 		"{hour:02}:{min:02}:{sec:02}",
-		hour = out_time_us / 1000 / 1000 / 60 / 60,
-		min = out_time_us / 1000 / 1000 / 60 % 60,
-		sec = out_time_us / 1000 / 1000 % 60);
-	if let Some (duration_micros) = duration_micros {
-		let progress = out_time_us as f64 / duration_micros as f64;
-		lines.push (format! ("[{}] {:0.2}%", progress_bar (60, progress), progress * 100.0));
-	}
+		hour = progress.out_time_micros / 1000 / 1000 / 60 / 60,
+		min = progress.out_time_micros / 1000 / 1000 / 60 % 60,
+		sec = progress.out_time_micros / 1000 / 1000 % 60);
 	let spin = SPIN_CHARS [* spin_idx];
 	* spin_idx = (* spin_idx + 1) % SPIN_CHARS.len ();
-	lines.push (format! ("frame={frame} fps={fps} bitrate={bitrate} time={time} speed={speed} {spin}"));
+	lines.push (format! ("{name} {spin}"));
+	if let Some (duration_micros) = duration_micros {
+		let progress = progress.out_time_micros as f64 / duration_micros as f64;
+		lines.push (format! (
+			"{ATTR_BAR}{bar}{ATTR_RESET} {val:0.2}%",
+			bar = progress_bar (70, progress),
+			val = progress * 100.0));
+	}
+	lines.push (format! (
+		"frame={frame} fps={fps} bitrate={bitrate} time={time} speed={speed}",
+		frame = progress.frame,
+		fps = progress.fps,
+		bitrate = progress.bitrate,
+		speed = progress.speed));
 	lines
 }
 
@@ -113,6 +142,19 @@ fn progress_bar (mut width: usize, mut value: f64) -> String {
 	result
 }
 
+#[ derive (Debug, Default) ]
+struct Progress {
+	frame: u64,
+	fps: String,
+	bitrate: String,
+	total_size: String,
+	out_time_micros: u64,
+	out_time_str: String,
+	dup_frames: u64,
+	drop_frames: u64,
+	speed: String,
+}
+
 struct ProgressListener {
 	shutdown_tx: tok_oneshot::Sender <()>,
 	port: u16,
@@ -120,7 +162,7 @@ struct ProgressListener {
 
 impl ProgressListener {
 
-	fn new (send_fn: Box <dyn Fn (Vec <(String, String)>) + Send>) -> anyhow::Result <Self> {
+	fn new (send_fn: Box <dyn Fn (Progress) + Send>) -> anyhow::Result <Self> {
 		let listener = TcpListener::bind ("127.0.0.1:0") ?;
 		let port = listener.local_addr ().unwrap ().port ();
 		let (shutdown_tx, shutdown_rx) = tok_oneshot::channel ();
@@ -153,7 +195,7 @@ impl ProgressListener {
 struct ProgressListenerTask {
 	listener: tok_net::TcpListener,
 	shutdown_rx: tok_oneshot::Receiver <()>,
-	send_fn: Box <dyn Fn (Vec <(String, String)>)>,
+	send_fn: Box <dyn Fn (Progress)>,
 }
 
 impl ProgressListenerTask {
@@ -161,18 +203,28 @@ impl ProgressListenerTask {
 	async fn run (mut self) -> anyhow::Result <()> {
 		let (socket, _) = self.listener.accept ().await ?;
 		let mut reader = tok_io::BufReader::new (socket).lines ();
-		let mut buf = Vec::new ();
+		let mut progress = Progress::default ();
 		loop {
 			tokio::select! {
 				_ = & mut self.shutdown_rx => break,
 				line = reader.next_line () => {
 					let Ok (Some (line)) = line else { break };
 					let Some (eq_pos) = line.find ('=') else { break };
-					let key = line [ .. eq_pos].to_owned ();
-					let val = line [eq_pos + 1 .. ].to_owned ();
-					let last_line = & key == "progress";
-					buf.push ((key, val));
-					if last_line { (self.send_fn) (mem::take (& mut buf)); }
+					let key = & line [ .. eq_pos];
+					let val = & line [eq_pos + 1 .. ];
+					match key {
+						"frame" => progress.frame = val.parse ().unwrap_or_default (),
+						"fps" => progress.fps = val.to_owned (),
+						"bitrate" => progress.bitrate = val.to_owned (),
+						"total_size" => progress.total_size = val.parse ().unwrap_or_default (),
+						"out_time_us" => progress.out_time_micros = val.parse ().unwrap_or_default (),
+						"out_time" => progress.out_time_str = val.to_owned (),
+						"dup_frames" => progress.dup_frames = val.parse ().unwrap_or_default (),
+						"drop_frames" => progress.drop_frames = val.parse ().unwrap_or_default (),
+						"speed" => progress.speed = val.to_owned (),
+						"progress" => (self.send_fn) (mem::take (& mut progress)),
+						_ => (),
+					}
 				},
 			}
 		}
