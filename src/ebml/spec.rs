@@ -310,7 +310,9 @@ macro_rules! ebml_elem_read {
 			reader.nest ();
 			while let Some ((elem_id, _, _)) = reader.read () ? {
 				$( if $name.read (elem_id, reader) ? { continue } )*
-				println! ("Ignoring {} child element 0x{elem_id:x}", $parent_spec.name);
+				if elem_id != 0xbf && elem_id != 0xec {
+					eprintln! ("Ignoring {} child element 0x{elem_id:x}", $parent_spec.name);
+				}
 				reader.skip () ?;
 			}
 			reader.unnest () ?;

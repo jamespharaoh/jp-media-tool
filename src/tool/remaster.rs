@@ -1,4 +1,5 @@
 use crate::ebml;
+use crate::ffmpeg;
 use crate::imports::*;
 use crate::matroska;
 
@@ -25,6 +26,9 @@ pub struct Args {
 
 	#[ clap (long, help = "Apply deshake filter" ) ]
 	video_deshake: bool,
+
+	#[ clap (long, help = "Show more detailed information" ) ]
+	verbose: bool,
 
 }
 
@@ -77,7 +81,7 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 			&& file_name.as_encoded_bytes ().ends_with (b".mkv") {
 		return Ok (true);
 	}
-	println! ("{}", file_path.display ());
+	if args.verbose { eprintln! ("Analysing source file: {}", file_path.display ()); }
 
 	let file = BufReader::new (File::open (file_path) ?);
 	let mut reader = EbmlReader::new (file) ?;
@@ -120,6 +124,22 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 		"Expected SeekHead, got 0x{seek_head_id}");
 	let seek_head = matroska::SeekHeadElem::read (& mut reader) ?;
 
+	// read segment info
+
+	let Some (seek_info) =
+		seek_head.seeks.iter ()
+			.find (|seek| seek.id == matroska::elems::INFO)
+	else { any_bail! ("Info not found in seek head") };
+	reader.jump (segment_pos + seek_info.position) ?;
+	let Some ((info_id, _, _)) = reader.read () ? else {
+		any_bail! ("Error reading segment info");
+	};
+	anyhow::ensure! (
+		info_id == matroska::elems::INFO,
+		"Expected Info, got 0x{info_id}");
+	let info = matroska::InfoElem::read (& mut reader) ?;
+	let duration_micros = info.duration.map (|duration| (info.timestamp_scale as f64 * duration / 1000.0) as u64);
+
 	// read tracks
 
 	let Some (seek_tracks) =
@@ -136,8 +156,6 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 	let tracks = matroska::TracksElem::read (& mut reader) ?;
 
 	let mut command: Vec <OsString> = Vec::new ();
-	command.push ("ffmpeg".into ());
-	command.push ("-hide_banner".into ());
 	command.push ("-i".into ());
 	command.push (file_path.into ());
 
@@ -213,15 +231,15 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 	for (src_idx, & track) in audio_tracks.iter ().enumerate () {
 		if ! matches! (track.language.as_str (), "eng" | "esp")
 				&& track.flag_original != Some (true) {
-			eprintln! ("Skip audio track {src_idx} ({})", track_meta (track));
+			if args.verbose { eprintln! ("Skip audio track {src_idx} ({})", track_meta (track)); }
 			continue;
 		}
-		eprintln! ("Include audio track {src_idx} ({})", track_meta (track));
+		if args.verbose { eprintln! ("Include audio track {src_idx} ({})", track_meta (track)); }
 		audio_mappings.push (src_idx);
 	}
 
 	if audio_mappings.is_empty () {
-		eprintln! ("Adding first audio track as none were selected");
+		if args.verbose { eprintln! ("Adding first audio track as none were selected"); }
 		audio_mappings.push (0);
 	}
 
@@ -270,10 +288,10 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 	let mut dest_idx = 0;
 	for (src_idx, & track) in subtitle_tracks.iter ().enumerate () {
 		if ! track.codec_id.starts_with ("S_TEXT/") {
-			eprintln! ("Skip subtitle track {src_idx} ({})", track.codec_id);
+			if args.verbose { eprintln! ("Skip subtitle track {src_idx} ({})", track.codec_id); }
 			continue;
 		}
-		eprintln! ("Include subtitle track {src_idx} ({})", track_meta (track));
+		if args.verbose { eprintln! ("Include subtitle track {src_idx} ({})", track_meta (track)); }
 		command.push ("-map".into ());
 		command.push (format! ("0:s:{src_idx}").into ());
 		command.push (format! ("-c:s:{dest_idx}").into ());
@@ -289,23 +307,8 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 	let file_path_out = file_path.with_file_name (file_name_out);
 	command.push (file_path_out.into ());
 
-	let mut proc =
-		process::Command::new (command [0].clone ())
-			.args (& command [1 .. ])
-			.stdin (process::Stdio::null ())
-			.stdout (process::Stdio::inherit ())
-			.stderr (process::Stdio::inherit ())
-			.spawn ()
-			.unwrap ();
-	let result = proc.wait ().unwrap ();
-	if ! result.success () {
-		if let Some (code) = result.code () {
-			eprintln! ("Encoder process returned status {:?}", code);
-		} else {
-			eprintln! ("Encoder process terminated abnormally");
-		}
-		return Ok (false)
-	}
+	let file_display = file_name.to_string_lossy ();
+	ffmpeg::convert_progress (& file_display, duration_micros, command) ?;
 
     Ok (true)
 

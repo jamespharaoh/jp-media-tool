@@ -1,4 +1,5 @@
 use crate::ebml;
+use crate::ffmpeg;
 use crate::imports::*;
 use crate::matroska;
 
@@ -43,7 +44,7 @@ pub struct Args {
 
 pub fn invoke (args: Args) -> anyhow::Result <()> {
 
-	let Some (_source_name) = args.source_path.file_name () else {
+	let Some (source_name) = args.source_path.file_name () else {
 		any_bail! ("Specified file has no name: {}", args.source_path.display ());
 	};
 	println! ("{}", args.source_path.display ());
@@ -89,6 +90,22 @@ pub fn invoke (args: Args) -> anyhow::Result <()> {
 		"Expected SeekHead, got 0x{seek_head_id}");
 	let seek_head = matroska::SeekHeadElem::read (& mut reader) ?;
 
+	// read segment info
+
+	let Some (seek_info) =
+		seek_head.seeks.iter ()
+			.find (|seek| seek.id == matroska::elems::INFO)
+	else { any_bail! ("Info not found in seek head") };
+	reader.jump (segment_pos + seek_info.position) ?;
+	let Some ((info_id, _, _)) = reader.read () ? else {
+		any_bail! ("Error reading segment info");
+	};
+	anyhow::ensure! (
+		info_id == matroska::elems::INFO,
+		"Expected Info, got 0x{info_id}");
+	let info = matroska::InfoElem::read (& mut reader) ?;
+	let duration_micros = info.duration.map (|duration| (info.timestamp_scale as f64 * duration / 1000.0) as u64);
+
 	// read tracks
 
 	let Some (seek_tracks) =
@@ -105,8 +122,6 @@ pub fn invoke (args: Args) -> anyhow::Result <()> {
 	let tracks = matroska::TracksElem::read (& mut reader) ?;
 
 	let mut command: Vec <OsString> = Vec::new ();
-	command.push ("ffmpeg".into ());
-	command.push ("-hide_banner".into ());
 	command.push ("-i".into ());
 	command.push ((& args.source_path).into ());
 	command.push ("-i".into ());
@@ -194,22 +209,8 @@ pub fn invoke (args: Args) -> anyhow::Result <()> {
 	let file_path_out = args.source_path.with_file_name (file_name_out);
 	command.push (file_path_out.into ());
 
-	let mut proc =
-		process::Command::new (command [0].clone ())
-			.args (& command [1 .. ])
-			.stdin (process::Stdio::null ())
-			.stdout (process::Stdio::inherit ())
-			.stderr (process::Stdio::inherit ())
-			.spawn ()
-			.unwrap ();
-	let result = proc.wait ().unwrap ();
-	if ! result.success () {
-		if let Some (code) = result.code () {
-			any_bail! ("Encoder process returned status {:?}", code);
-		} else {
-			any_bail! ("Encoder process terminated abnormally");
-		}
-	}
+	let source_display = source_name.to_string_lossy ();
+	ffmpeg::convert_progress (& source_display, duration_micros, command) ?;
 
     Ok (())
 
