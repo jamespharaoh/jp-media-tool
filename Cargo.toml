@@ -2,7 +2,33 @@
 
 	name = "jp-media-tool"
 	version = "0.1.0"
+	authors = [ "James Pharaoh <james@pharaoh.uk>" ]
 	edition = "2021"
+	description = "Opinionated tools for maintaining a media library"
+	license = "Apache-2.0"
+	keywords = [
+		"audio",
+		"conversion",
+		"encoding",
+		"ffmpeg",
+		"h265",
+		"hevc",
+		"matroska",
+		"media",
+		"mkv",
+		"opus",
+		"srt",
+		"subtitle",
+		"subtitles",
+		"transcoding",
+		"video",
+		"x265",
+	]
+	categories = [
+		"command-line-utilities",
+		"encoding",
+		"multimedia::encoding",
+	]
 
 [dependencies]
 
