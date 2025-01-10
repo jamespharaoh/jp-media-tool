@@ -77,7 +77,8 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 	let Some (file_name) = file_path.file_name () else {
 		any_bail! ("Specified file has no name: {}", file_path.display ());
 	};
-	if file_name.as_encoded_bytes ().windows (10).any (|sub| sub == b"-remaster")
+	if file_name.as_encoded_bytes ().windows (10)
+				.any (|sub| sub == b"-remaster-" || sub == b"-remaster.")
 			&& file_name.as_encoded_bytes ().ends_with (b".mkv") {
 		return Ok (true);
 	}
