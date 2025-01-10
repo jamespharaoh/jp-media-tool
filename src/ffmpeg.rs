@@ -201,7 +201,13 @@ struct ProgressListenerTask {
 impl ProgressListenerTask {
 
 	async fn run (mut self) -> anyhow::Result <()> {
-		let (socket, _) = self.listener.accept ().await ?;
+		let socket = tokio::select! {
+			_ = & mut self.shutdown_rx => return Ok (()),
+			socket = self.listener.accept () => {
+				let (socket, _) = socket ?;
+				socket
+			},
+		};
 		let mut reader = tok_io::BufReader::new (socket).lines ();
 		let mut progress = Progress::default ();
 		loop {
