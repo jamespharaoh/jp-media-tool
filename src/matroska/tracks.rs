@@ -44,7 +44,7 @@ pub struct TrackEntryElem {
 	pub video: Option <VideoElem>,
 	pub audio: Option <AudioElem>,
 	pub operations: Vec <TrackOperationElem>,
-	pub encodings: Option <ContentEncodingsElem>,
+	pub content_encodings: Option <ContentEncodingsElem>,
 }
 
 impl EbmlValue for TrackEntryElem {
@@ -78,7 +78,7 @@ impl EbmlValue for TrackEntryElem {
 		one opt video = elems::Video;
 		one opt audio = elems::Audio;
 		mul opt operations = elems::TrackOperation;
-		one opt encodings = elems::ContentEncodings;
+		one opt content_encodings = elems::ContentEncodings;
 	}
 }
 
@@ -261,14 +261,82 @@ impl EbmlValue for TrackOperationElem {
 	}
 }
 
+#[ allow (dead_code) ]
 #[ derive (Debug) ]
 pub struct ContentEncodingsElem {
-	// TODO
+	pub encodings: Vec <ContentEncodingElem>,
 }
 
 impl EbmlValue for ContentEncodingsElem {
 	ebml_elem_read! {
 		spec = elems::ContentEncodings;
+		mul req encodings = elems::ContentEncoding;
+	}
+}
+
+#[ allow (dead_code) ]
+#[ derive (Debug) ]
+pub struct ContentEncodingElem {
+	pub order: u64,
+	pub scope: u64,
+	pub type_: u64,
+	pub compression: Option <ContentCompressionElem>,
+	pub encryption: Option <ContentEncryptionElem>,
+}
+
+impl EbmlValue for ContentEncodingElem {
+	ebml_elem_read! {
+		spec = elems::ContentEncoding;
+		one def order = elems::ContentEncodingOrder, & 0;
+		one def scope = elems::ContentEncodingScope, & 1;
+		one def type_ = elems::ContentEncodingType, & 0;
+		one opt compression = elems::ContentCompression;
+		one opt encryption = elems::ContentEncryption;
+	}
+}
+
+#[ allow (dead_code) ]
+#[ derive (Debug) ]
+pub struct ContentCompressionElem {
+	pub algo: u64,
+	pub settings: Option <Blob>,
+}
+
+impl EbmlValue for ContentCompressionElem {
+	ebml_elem_read! {
+		spec = elems::ContentCompression;
+		one def algo = elems::ContentCompAlgo, & 0;
+		one opt settings = elems::ContentCompSettings;
+	}
+}
+
+#[ allow (dead_code) ]
+#[ derive (Debug) ]
+pub struct ContentEncryptionElem {
+	pub algo: u64,
+	pub key_id: Option <Blob>,
+	pub aes_settings: Option <ContentEncAesSettingsElem>,
+}
+
+impl EbmlValue for ContentEncryptionElem {
+	ebml_elem_read! {
+		spec = elems::ContentEncryption;
+		one def algo = elems::ContentEncAlgo, & 0;
+		one opt key_id = elems::ContentEncKeyId;
+		one opt aes_settings = elems::ContentEncAesSettings;
+	}
+}
+
+#[ allow (dead_code) ]
+#[ derive (Debug) ]
+pub struct ContentEncAesSettingsElem {
+	pub cipher_mode: u64,
+}
+
+impl EbmlValue for ContentEncAesSettingsElem {
+	ebml_elem_read! {
+		spec = elems::ContentEncAesSettings;
+		one req cipher_mode = elems::AesSettingsCipherMode;
 	}
 }
 
@@ -368,17 +436,17 @@ ebml_elem_spec! {
 		pub elem TrackJoinBlocks = 0xe9, "TrackJoinBlocks", () /*TrackJoinBlocksElem*/;
 		pub elem TrackJoinUid = 0xed, "TrackJoinUID", u64;
 		pub elem ContentEncodings = 0x6d80, "ContentEncodings", ContentEncodingsElem;
-		pub elem ContentEncoding = 0x6240, "ContentEncoding", () /*ContentEncodingElem*/;
+		pub elem ContentEncoding = 0x6240, "ContentEncoding", ContentEncodingElem;
 		pub elem ContentEncodingOrder = 0x5031, "ContentEncodingOrder", u64;
 		pub elem ContentEncodingScope = 0x5032, "ContentEncodingScope", u64;
 		pub elem ContentEncodingType = 0x5033, "ContentEncodingType", u64;
-		pub elem ContentCompression = 0x5034, "ContentCompression", u64;
+		pub elem ContentCompression = 0x5034, "ContentCompression", ContentCompressionElem;
 		pub elem ContentCompAlgo = 0x4254, "ContentCompAlgo", u64;
 		pub elem ContentCompSettings = 0x4255, "ContentCompSettings", Blob;
-		pub elem ContentEncryption = 0x5035, "ContentEncryption", () /*ContentEncryptionElem*/;
+		pub elem ContentEncryption = 0x5035, "ContentEncryption", ContentEncryptionElem;
 		pub elem ContentEncAlgo = 0x47e1, "ContentEncAlgo", u64;
 		pub elem ContentEncKeyId = 0x47e2, "ContentEncKeyID", Blob;
-		pub elem ContentEncAesSettings = 0x47e7, "ContentEncAESSettings", () /*ContentEncAesSettingsElem*/;
+		pub elem ContentEncAesSettings = 0x47e7, "ContentEncAESSettings", ContentEncAesSettingsElem;
 		pub elem AesSettingsCipherMode = 0x47e8, "AESSettingsCipherMode", u64;
 	}
 }
