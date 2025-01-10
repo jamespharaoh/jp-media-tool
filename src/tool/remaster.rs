@@ -1,4 +1,3 @@
-use crate::ebml;
 use crate::ffmpeg;
 use crate::imports::*;
 use crate::matroska;
@@ -84,77 +83,15 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 	}
 	if args.verbose { eprintln! ("Analysing source file: {}", file_path.display ()); }
 
+	// read source file
+
 	let file = BufReader::new (File::open (file_path) ?);
-	let mut reader = EbmlReader::new (file) ?;
-
-	// read ebml header
-
-	let Some ((ebml_id, _, _)) = reader.read () ? else {
-		any_bail! ("Error reading ebml header");
-	};
-	anyhow::ensure! (ebml_id == ebml::head::elems::EBML, "Expected EBML, got 0x{ebml_id:x}");
-	let ebml = ebml::head::EbmlElem::read (& mut reader) ?;
-	if 1 < ebml.read_version {
-		any_bail! ("Unsupported EBML read version: {}", ebml.read_version);
-	}
-	if & ebml.doc_type != "matroska" {
-		any_bail! ("Unsupported document type: {} (expected: matroska)", ebml.doc_type);
-	}
-	if 4 < ebml.doc_type_read_version {
-		any_bail! ("Unsupported matroska read version: {}", ebml.doc_type_read_version);
-	}
-
-	// read segment
-
-	let Some ((segment_id, _, _)) = reader.read () ? else {
-		any_bail! ("Error reading segment");
-	};
-	let segment_pos = reader.position ();
-	anyhow::ensure! (
-		segment_id == matroska::elems::SEGMENT,
-		"Expected Segment, got 0x{segment_id}");
-	reader.nest ();
-
-	// read seek head
-
-	let Some ((seek_head_id, _, _)) = reader.read () ? else {
-		any_bail! ("Error reading seek head");
-	};
-	anyhow::ensure! (
-		seek_head_id == matroska::elems::SEEK_HEAD,
-		"Expected SeekHead, got 0x{seek_head_id}");
-	let seek_head = matroska::SeekHeadElem::read (& mut reader) ?;
-
-	// read segment info
-
-	let Some (seek_info) =
-		seek_head.seeks.iter ()
-			.find (|seek| seek.id == matroska::elems::INFO)
-	else { any_bail! ("Info not found in seek head") };
-	reader.jump (segment_pos + seek_info.position) ?;
-	let Some ((info_id, _, _)) = reader.read () ? else {
-		any_bail! ("Error reading segment info");
-	};
-	anyhow::ensure! (
-		info_id == matroska::elems::INFO,
-		"Expected Info, got 0x{info_id}");
-	let info = matroska::InfoElem::read (& mut reader) ?;
+	let mut reader = matroska::Reader::new (file) ?;
+	let info = reader.segment_info () ?;
 	let duration_micros = info.duration.map (|duration| (info.timestamp_scale as f64 * duration / 1000.0) as u64);
+	let tracks = reader.tracks () ?;
 
-	// read tracks
-
-	let Some (seek_tracks) =
-		seek_head.seeks.iter ()
-			.find (|seek| seek.id == matroska::elems::TRACKS)
-	else { any_bail! ("Tracks not found in seek head") };
-	reader.jump (segment_pos + seek_tracks.position) ?;
-	let Some ((tracks_id, _, _)) = reader.read () ? else {
-		any_bail! ("Error reading tracks");
-	};
-	anyhow::ensure! (
-		tracks_id == matroska::elems::TRACKS,
-		"Expected Tracks, got 0x{tracks_id}");
-	let tracks = matroska::TracksElem::read (& mut reader) ?;
+	// start building command
 
 	let mut command: Vec <OsString> = Vec::new ();
 	command.push ("-i".into ());

@@ -31,6 +31,7 @@ pub use std::sync::mpsc;
 pub use std::path::Path;
 pub use std::path::PathBuf;
 pub use std::process;
+pub use std::sync::Arc;
 pub use std::thread;
 
 pub use tokio::io as tok_io;
