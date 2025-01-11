@@ -50,8 +50,8 @@ pub fn invoke (args: Args) -> anyhow::Result <()> {
 	};
 	println! ("{}", args.source_path.display ());
 
-	let mut file_name_out = args.source_path.file_stem ().unwrap ().to_owned ();
-	file_name_out.push (format! ("-subs-{}", args.lang));
+	let mut dest_name = args.source_path.file_stem ().unwrap ().to_owned ();
+	dest_name.push (format! ("-subs-{}", args.lang));
 
 	// open source file
 
@@ -145,9 +145,12 @@ pub fn invoke (args: Args) -> anyhow::Result <()> {
 	command.push ("-f".into ());
 	command.push ("matroska".into ());
 
-	file_name_out.push (".mkv");
-	let file_path_out = args.source_path.with_file_name (file_name_out);
-	command.push (file_path_out.into ());
+	dest_name.push (".mkv");
+	let dest_path = args.source_path.with_file_name (dest_name);
+	if dest_path.try_exists () ? {
+		any_bail! ("File already exists: {}", dest_path.display ());
+	}
+	command.push (dest_path.into ());
 
 	let source_display = source_name.to_string_lossy ();
 	ffmpeg::convert_progress (& source_display, duration_micros, command) ?;

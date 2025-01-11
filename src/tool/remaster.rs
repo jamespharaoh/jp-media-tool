@@ -97,8 +97,8 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 	command.push ("-i".into ());
 	command.push (file_path.into ());
 
-	let mut file_name_out = file_path.file_stem ().unwrap ().to_owned ();
-	file_name_out.push ("-remaster");
+	let mut dest_name = file_path.file_stem ().unwrap ().to_owned ();
+	dest_name.push ("-remaster");
 
 	// do video
 
@@ -112,7 +112,7 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 
 	if let Some (& video_quality) = args.video_quality.as_ref () {
 		let video_preset = & args.video_preset;
-		file_name_out.push (format! ("-x265-{video_preset}-{video_quality}"));
+		dest_name.push (format! ("-x265-{video_preset}-{video_quality}"));
 		command.push ("-map".into ());
 		command.push ("0:v:0".into ());
 		command.push ("-c:v:0".into ());
@@ -127,15 +127,15 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 		command.push ("0:s:v:0".into ());
 		let mut video_filters: Vec <OsString> = Vec::new ();
 		if args.video_deinterlace {
-			file_name_out.push ("-deinterlace");
+			dest_name.push ("-deinterlace");
 			video_filters.push ("yadif=0".into ());
 		}
 		if let Some (& video_denoise) = args.video_denoise.as_ref () {
-			file_name_out.push (format! ("-denoise-{video_denoise}"));
+			dest_name.push (format! ("-denoise-{video_denoise}"));
 			video_filters.push (format! ("hqdn3d={video_denoise}:{video_denoise}:6:6").into ());
 		}
 		if args.video_deshake {
-			file_name_out.push ("-deshake");
+			dest_name.push ("-deshake");
 			video_filters.push ("deshake".into ());
 		}
 		if ! video_filters.is_empty () {
@@ -241,9 +241,12 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 
 	// do conversion
 
-	file_name_out.push ("-opus.mkv");
-	let file_path_out = file_path.with_file_name (file_name_out);
-	command.push (file_path_out.into ());
+	dest_name.push ("-opus.mkv");
+	let dest_path = file_path.with_file_name (dest_name);
+	if dest_path.try_exists () ? {
+		any_bail! ("File already exists: {}", dest_path.display ());
+	}
+	command.push (dest_path.into ());
 
 	let file_display = file_name.to_string_lossy ();
 	ffmpeg::convert_progress (& file_display, duration_micros, command) ?;

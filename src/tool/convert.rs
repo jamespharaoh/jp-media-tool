@@ -45,6 +45,9 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <()> {
 		dest_name.push ("-convert.mkv");
 	}
 	let dest_path = file_path.with_file_name (dest_name);
+	if dest_path.try_exists () ? {
+		any_bail! ("File already exists: {}", dest_path.display ());
+	}
 	let mut command: Vec <OsString> = Vec::new ();
 	if file_type.needs_timestamp () {
 		command.push ("-fflags".into ());
