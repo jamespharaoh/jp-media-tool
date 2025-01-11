@@ -52,6 +52,7 @@ pub fn convert_progress (
 	eprintln! ("{name}");
 	progress_listener.shutdown ();
 	if ! output.status.success () {
+		io::stderr ().write_all (& output.stderr) ?;
 		io::stderr ().write_all (& output.stdout) ?;
 		if let Some (code) = output.status.code () {
 			any_bail! ("Encoder process returned status {:?}", code);
