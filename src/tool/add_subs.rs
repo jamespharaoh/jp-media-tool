@@ -48,7 +48,6 @@ pub fn invoke (args: Args) -> anyhow::Result <()> {
 	let Some (source_name) = args.source_path.file_name () else {
 		any_bail! ("Specified file has no name: {}", args.source_path.display ());
 	};
-	println! ("{}", args.source_path.display ());
 
 	let mut dest_name = args.source_path.file_stem ().unwrap ().to_owned ();
 	dest_name.push (format! ("-subs-{}", args.lang));
