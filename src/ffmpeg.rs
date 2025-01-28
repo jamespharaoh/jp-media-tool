@@ -268,6 +268,7 @@ pub fn probe (file_path: & Path) -> anyhow::Result <Info> {
 					"subtitle" => StreamType::Subtitle,
 					codec_type => any_bail! ("Invalid codec type: {codec_type}"),
 				},
+				codec_name: stream.codec_name.clone (),
 			}))
 			.try_collect () ?,
 	})
@@ -282,6 +283,7 @@ pub struct Info {
 #[ derive (Debug) ]
 pub struct Stream {
 	pub stream_type: StreamType,
+	pub codec_name: String,
 }
 
 #[ derive (Clone, Copy, Debug, Eq, PartialEq) ]
@@ -307,5 +309,6 @@ struct FfFormat {
 
 #[ derive (Debug, Deserialize) ]
 struct FfStream {
+	codec_name: String,
 	codec_type: String,
 }

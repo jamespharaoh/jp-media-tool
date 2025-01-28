@@ -66,11 +66,15 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <()> {
 		command.push (format! ("0:a:{audio_idx}").into ());
 	}
 	if ! args.skip_subs {
-		let num_subs =
-			probe.streams.iter ()
-				.filter (|stream| stream.stream_type == ffmpeg::StreamType::Subtitle)
-				.count ();
-		for subs_idx in 0 .. num_subs {
+		for (subs_idx, subs_stream) in
+				probe.streams.iter ()
+					.filter (|stream| stream.stream_type == ffmpeg::StreamType::Subtitle)
+					.enumerate () {
+			match & * subs_stream.codec_name {
+				"mov_text" => continue,
+				"subrip" => (),
+				codec => any_bail! ("Unknown subtitle codec: {codec}"),
+			}
 			command.push ("-map".into ());
 			command.push (format! ("0:s:{subs_idx}").into ());
 		}
