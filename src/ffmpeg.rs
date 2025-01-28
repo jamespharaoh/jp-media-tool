@@ -264,6 +264,7 @@ pub fn probe (file_path: & Path) -> anyhow::Result <Info> {
 				stream_type: match & * stream.codec_type {
 					"video" => StreamType::Video,
 					"audio" => StreamType::Audio,
+					"data" => StreamType::Data,
 					"subtitle" => StreamType::Subtitle,
 					codec_type => any_bail! ("Invalid codec type: {codec_type}"),
 				},
@@ -285,9 +286,10 @@ pub struct Stream {
 
 #[ derive (Clone, Copy, Debug, Eq, PartialEq) ]
 pub enum StreamType {
-	Video,
 	Audio,
+	Data,
 	Subtitle,
+	Video,
 }
 
 #[ derive (Debug, Deserialize) ]
