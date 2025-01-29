@@ -247,7 +247,11 @@ pub fn probe (file_path: & Path) -> anyhow::Result <Info> {
 	command.push ("json".into ());
 	command.push ("-show_format".into ());
 	command.push ("-show_streams".into ());
-	command.push (file_path.into ());
+	command.push ({
+		let mut val = OsString::from ("file:");
+		val.push (file_path);
+		val
+	});
 	let output =
 		process::Command::new ("ffprobe")
 			.args (command)

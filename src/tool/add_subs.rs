@@ -63,9 +63,17 @@ pub fn invoke (args: Args) -> anyhow::Result <()> {
 	let tracks = reader.tracks () ?;
 	let mut command: Vec <OsString> = Vec::new ();
 	command.push ("-i".into ());
-	command.push ((& args.source_path).into ());
+	command.push ({
+		let mut val = OsString::from ("file:");
+		val.push (& args.source_path);
+		val
+	});
 	command.push ("-i".into ());
-	command.push (args.subs_path.into ());
+	command.push ({
+		let mut val = OsString::from ("file:");
+		val.push (args.subs_path);
+		val
+	});
 
 	// do video
 
@@ -149,7 +157,11 @@ pub fn invoke (args: Args) -> anyhow::Result <()> {
 	if dest_path.try_exists () ? {
 		any_bail! ("File already exists: {}", dest_path.display ());
 	}
-	command.push (dest_path.into ());
+	command.push ({
+		let mut val = OsString::from ("file:");
+		val.push (dest_path);
+		val
+	});
 
 	let source_display = source_name.to_string_lossy ();
 	ffmpeg::convert_progress (& source_display, duration_micros, command) ?;

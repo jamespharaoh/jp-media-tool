@@ -95,7 +95,11 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 
 	let mut command: Vec <OsString> = Vec::new ();
 	command.push ("-i".into ());
-	command.push (file_path.into ());
+	command.push ({
+		let mut val = OsString::from ("file:");
+		val.push (file_path);
+		val
+	});
 
 	let mut dest_name = file_path.file_stem ().unwrap ().to_owned ();
 	dest_name.push ("-remaster");
@@ -246,7 +250,11 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 	if dest_path.try_exists () ? {
 		any_bail! ("File already exists: {}", dest_path.display ());
 	}
-	command.push (dest_path.into ());
+	command.push ({
+		let mut val = OsString::from ("file:");
+		val.push (dest_path);
+		val
+	});
 
 	let file_display = file_name.to_string_lossy ();
 	ffmpeg::convert_progress (& file_display, duration_micros, command) ?;

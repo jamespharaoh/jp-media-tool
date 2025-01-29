@@ -54,7 +54,11 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <()> {
 		command.push ("+genpts".into ());
 	}
 	command.push ("-i".into ());
-	command.push (file_path.into ());
+	command.push ({
+		let mut val = OsString::from ("file:");
+		val.push (file_path);
+		val
+	});
 	command.push ("-map".into ());
 	command.push ("0:v:0".into ());
 	command.push ("-codec:v:0".into ());
@@ -89,7 +93,11 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <()> {
 	}
 	command.push ("-format".into ());
 	command.push ("matroska".into ());
-	command.push (dest_path.into ());
+	command.push ({
+		let mut val = OsString::from ("file:");
+		val.push (dest_path);
+		val
+	});
 	let file_display = file_name.to_string_lossy ();
 	ffmpeg::convert_progress (& file_display, Some ((probe.duration * 1_000_000.0) as u64), command) ?;
 	Ok (())
