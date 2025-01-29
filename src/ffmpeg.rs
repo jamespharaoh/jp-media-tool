@@ -36,6 +36,8 @@ pub fn convert_progress (
 		}
 	});
 	let mut lines = StatusLines::new ();
+	lines.push (format! ("{name}"));
+	lines.flush ();
 	let mut spin_idx = 0;
 	let output = loop {
 		match status_rx.recv () ? {

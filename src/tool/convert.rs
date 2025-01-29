@@ -27,7 +27,9 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <()> {
 	let file_display = file_path.to_string_lossy ();
 	let file_type = detect (file_path)
 		.with_context (|| any_err! ("Error identifying file: {file_display}")) ?;
+	eprintln! ("{} (probing...)", file_path.display ());
 	let probe = ffmpeg::probe (file_path) ?;
+	eprint! ("\x1b[A\x1b[J");
 	let strip_extension = match file_path.extension ().map (OsStr::as_encoded_bytes) {
 		Some (b"avi" | b"AVI") => true,
 		Some (b"m4v" | b"M4V") => true,
