@@ -57,6 +57,8 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <()> {
 	command.push (file_path.into ());
 	command.push ("-map".into ());
 	command.push ("0:v:0".into ());
+	command.push ("-codec:v:0".into ());
+	command.push ("copy".into ());
 	let num_audio =
 		probe.streams.iter ()
 			.filter (|stream| stream.stream_type == ffmpeg::StreamType::Audio)
@@ -64,23 +66,27 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <()> {
 	for audio_idx in 0 .. num_audio {
 		command.push ("-map".into ());
 		command.push (format! ("0:a:{audio_idx}").into ());
+		command.push (format! ("-codec:a:{audio_idx}").into ());
+		command.push ("copy".into ());
 	}
 	if ! args.skip_subs {
+		let mut new_subs_idx = 0;
 		for (subs_idx, subs_stream) in
 				probe.streams.iter ()
 					.filter (|stream| stream.stream_type == ffmpeg::StreamType::Subtitle)
 					.enumerate () {
-			match & * subs_stream.codec_name {
-				"mov_text" => continue,
-				"subrip" => (),
+			let Some (codec) = (match & * subs_stream.codec_name {
+				"mov_text" => Some ("srt"),
+				"subrip" => Some ("copy"),
 				codec => any_bail! ("Unknown subtitle codec: {codec}"),
-			}
+			}) else { continue };
 			command.push ("-map".into ());
 			command.push (format! ("0:s:{subs_idx}").into ());
+			command.push (format! ("-codec:s:{new_subs_idx}").into ());
+			command.push (codec.into ());
+			new_subs_idx += 1;
 		}
 	}
-	command.push ("-codec".into ());
-	command.push ("copy".into ());
 	command.push ("-format".into ());
 	command.push ("matroska".into ());
 	command.push (dest_path.into ());
