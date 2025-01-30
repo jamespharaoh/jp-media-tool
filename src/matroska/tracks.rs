@@ -28,6 +28,8 @@ pub struct TrackEntryElem {
 	pub flag_original: Option <bool>,
 	pub flag_commentary: Option <bool>,
 	pub flag_lacing: bool,
+	pub min_cache: u64,
+	pub max_cache: Option <u64>,
 	pub default_duration: Option <u64>,
 	pub default_decoded_field_duration: Option <u64>,
 	pub max_block_addition_id: u64,
@@ -62,6 +64,8 @@ impl EbmlValue for TrackEntryElem {
 		one opt flag_original = elems::FlagOriginal;
 		one opt flag_commentary = elems::FlagCommentary;
 		one def flag_lacing = elems::FlagLacing, & true;
+		one def min_cache = elems::MinCache, & 0;
+		one opt max_cache = elems::MaxCache;
 		one opt default_duration = elems::DefaultDuration;
 		one opt default_decoded_field_duration = elems::DefaultDecodedFieldDuration;
 		one def max_block_addition_id = elems::MaxBlockAdditionId, & 0;
@@ -356,12 +360,14 @@ ebml_elem_spec! {
 		pub elem FlagOriginal = 0x55ae, "FlagOriginal", bool;
 		pub elem FlagCommentary = 0x55af, "FlagCommentary", bool;
 		pub elem FlagLacing = 0x9c, "FlagLacing", bool;
+		pub elem MinCache = 0x6de7, "MinCache", u64;
+		pub elem MaxCache = 0x6df8, "MaxCache", u64;
 		pub elem DefaultDuration = 0x23e383, "DefaultDuration", u64;
 		pub elem DefaultDecodedFieldDuration = 0x234e7a, "DefaultDecodedFieldDuration", u64;
 		pub elem MaxBlockAdditionId = 0x55ee, "MaxBlockAdditionID", u64;
 		pub elem BlockAdditionMapping = 0x41e4, "BlockAdditionMapping", BlockAdditionMappingElem;
 		pub elem BlockAddIdValue = 0x41f0, "BlockAddIDValue", u64;
-		pub elem BlockAddIdName = 0x41f4, "BlockAddIDName", String;
+		pub elem BlockAddIdName = 0x41a4, "BlockAddIDName", String;
 		pub elem BlockAddIdType = 0x41e7, "BlockAddIDType", u64;
 		pub elem BlockAddIdExtraData = 0x41ed, "BlockAddIDExtraData", Blob;
 		pub elem Name = 0x536e, "Name", String;
