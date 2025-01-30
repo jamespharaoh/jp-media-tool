@@ -34,6 +34,7 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <()> {
 		Some (b"avi" | b"AVI") => true,
 		Some (b"m4v" | b"M4V") => true,
 		Some (b"mkv" | b"MKV") => true,
+		Some (b"mpg" | b"MPG") => true,
 		Some (b"mp4" | b"MP4") => true,
 		Some (b"vob" | b"VOB") => true,
 		_ => false,
@@ -124,7 +125,8 @@ fn detect (file_path: & Path) -> anyhow::Result <FileType> {
 		any_bail! ("Unknown ISOM file type: {:02x} {:02x} {:02x} {:02x}", buf [8], buf [9], buf [10], buf [11]);
 	}
 	if 5 <= buf.len () && & buf [0 .. 4] == [ 0x00, 0x00, 0x01, 0xba ] {
-		if buf [4] & 0xc0 == 0x40 { return Ok (FileType::Mpeg) }
+		if buf [4] & 0xf0 == 0x20 { return Ok (FileType::Mpeg1) }
+		if buf [4] & 0xc0 == 0x40 { return Ok (FileType::Mpeg2) }
 		any_bail! ("Unknown MPEG program stream file type");
 	}
 	any_bail! ("Unknown file type");
@@ -137,7 +139,8 @@ enum FileType {
 	Matroska,
 	Mp4v1,
 	Mp4v2,
-	Mpeg,
+	Mpeg1,
+	Mpeg2,
 }
 
 impl FileType {
@@ -148,7 +151,8 @@ impl FileType {
 			Self::Matroska => false,
 			Self::Mp4v1 => false,
 			Self::Mp4v2 => false,
-			Self::Mpeg => true,
+			Self::Mpeg1 => true,
+			Self::Mpeg2 => true,
 		}
 	}
 }
