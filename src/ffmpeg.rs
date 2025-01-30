@@ -268,10 +268,10 @@ pub fn probe (file_path: & Path) -> anyhow::Result <Info> {
 		streams: data.streams.iter ()
 			.map (|stream| Ok (Stream {
 				stream_type: match & * stream.codec_type {
-					"video" => StreamType::Video,
 					"audio" => StreamType::Audio,
 					"data" => StreamType::Data,
 					"subtitle" => StreamType::Subtitle,
+					"video" => StreamType::Video,
 					codec_type => any_bail! ("Invalid codec type: {codec_type}"),
 				},
 				codec_name: stream.codec_name.clone (),

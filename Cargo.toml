@@ -39,4 +39,5 @@
 	serde = { version = "*", features = [ "derive" ] }
 	serde_with = { version = "*", features = [ "macros" ] }
 	serde_json = "*"
+	thiserror = "*"
 	tokio = { version = "*", features = [ "io-util", "macros", "net", "rt", "sync" ] }

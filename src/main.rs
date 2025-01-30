@@ -1,3 +1,4 @@
+mod detect;
 mod ebml;
 mod ffmpeg;
 mod imports;
