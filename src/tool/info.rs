@@ -102,14 +102,16 @@ fn matroska_info (path: & Path) -> anyhow::Result <String> {
 fn matroska_codec_name (codec_id: & str) -> & str {
 	match codec_id {
 		"A_AAC" => "aac",
+		"A_AC3" => "ac3",
 		"A_DTS" => "dts",
-		"A_EAC3" => "ac3",
+		"A_EAC3" => "eac3",
 		"A_MPEG/L3" => "mp3",
 		"A_OPUS" => "opus",
 		"A_TRUEHD" => "truehd",
-		"V_MPEG4/ISO/ASP" => "asp",
-		"V_MPEG4/ISO/AVC" => "avc",
-		"V_MPEGH/ISO/HEVC" => "hevc",
+		"V_MPEG2" => "mpeg2",
+		"V_MPEG4/ISO/ASP" => "mpeg4/asp",
+		"V_MPEG4/ISO/AVC" => "mpeg4/avc",
+		"V_MPEGH/ISO/HEVC" => "mpeg4/hevc",
 		_ => codec_id,
 	}
 }
