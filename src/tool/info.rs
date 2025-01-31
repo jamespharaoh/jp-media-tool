@@ -105,6 +105,7 @@ fn matroska_codec_name (codec_id: & str) -> & str {
 		"A_AC3" => "ac3",
 		"A_DTS" => "dts",
 		"A_EAC3" => "eac3",
+		"A_FLAC" => "flac",
 		"A_MPEG/L3" => "mp3",
 		"A_OPUS" => "opus",
 		"A_TRUEHD" => "truehd",
