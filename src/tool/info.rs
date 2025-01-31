@@ -109,6 +109,7 @@ fn matroska_codec_name (codec_id: & str) -> & str {
 		"A_MPEG/L3" => "mp3",
 		"A_OPUS" => "opus",
 		"A_TRUEHD" => "truehd",
+		"V_AV1" => "av1",
 		"V_MPEG2" => "mpeg2",
 		"V_MPEG4/ISO/ASP" => "mpeg4/asp",
 		"V_MPEG4/ISO/AVC" => "mpeg4/avc",
