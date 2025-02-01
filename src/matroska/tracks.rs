@@ -40,6 +40,7 @@ pub struct TrackEntryElem {
 	pub codec_id: String,
 	pub codec_private: Option <Vec <u8>>,
 	pub codec_name: Option <String>,
+	pub codec_decode_all: bool,
 	pub codec_delay: u64,
 	pub seek_pre_roll: u64,
 	pub translates: Vec <TrackTranslateElem>,
@@ -76,6 +77,7 @@ impl EbmlValue for TrackEntryElem {
 		one req codec_id = elems::CodecId;
 		one opt codec_private = elems::CodecPrivate;
 		one opt codec_name = elems::CodecName;
+		one def codec_decode_all = elems::CodecDecodeAll, & true;
 		one def codec_delay = elems::CodecDelay, & 0;
 		one def seek_pre_roll = elems::SeekPreRoll, & 0;
 		mul opt translates = elems::TrackTranslate;
@@ -376,6 +378,7 @@ ebml_elem_spec! {
 		pub elem CodecId = 0x86, "CodecID", String;
 		pub elem CodecPrivate = 0x63a2, "CodecPrivate", Blob;
 		pub elem CodecName = 0x258688, "CodecName", String;
+		pub elem CodecDecodeAll = 0xaa, "CodecDecodeAll", bool;
 		pub elem CodecDelay = 0x56aa, "CodecDelay", u64;
 		pub elem SeekPreRoll = 0x56bb, "SeekPreRoll", u64;
 		pub elem TrackTranslate = 0x6624, "TrackTranslate", TrackTranslateElem;
