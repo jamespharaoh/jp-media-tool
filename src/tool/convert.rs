@@ -26,7 +26,7 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <()> {
 		any_bail! ("No filename in path");
 	};
 	let file_display = file_path.to_string_lossy ();
-	let file_type = detect::FileType::identify (file_path)
+	let file_type = detect::FileType::identify_path (file_path)
 		.with_context (|| any_err! ("Error identifying file: {file_display}")) ?;
 	eprintln! ("{} (probing...)", file_path.display ());
 	let probe = ffmpeg::probe (file_path) ?;

@@ -13,11 +13,18 @@ pub enum FileType {
 
 impl FileType {
 
-	pub fn identify (file_path: & Path) -> Result <FileType, IdentifyError> {
-		let mut file = File::open (file_path) ?;
+	pub fn identify_path (file_path: & Path) -> Result <FileType, IdentifyError> {
+		Self::identify_reader (File::open (file_path) ?)
+	}
+
+	pub fn identify_reader (mut reader: impl Read) -> Result <FileType, IdentifyError> {
 		let mut buf = vec! [0; 4096];
-		let bytes_read = file.read (& mut buf) ?;
+		let bytes_read = reader.read (& mut buf) ?;
 		let buf = & buf [ .. bytes_read];
+		Self::identify_slice (buf)
+	}
+
+	pub fn identify_slice (buf: & [u8]) -> Result <FileType, IdentifyError> {
 		if 4 <= buf.len () && & buf [0 .. 4] == [ 0x1a, 0x45, 0xdf, 0xa3 ] {
 			return Ok (FileType::Matroska);
 		}

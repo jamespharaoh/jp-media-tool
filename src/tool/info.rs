@@ -23,7 +23,8 @@ pub fn invoke (args: Args) -> anyhow::Result <()> {
 			println! ("{file_display:<max_len$} directory");
 			continue;
 		}
-		match detect::FileType::identify (& file_path) {
+		let mut file = BufReader::new (File::open (file_path) ?);
+		match detect::FileType::identify_reader (& mut file) {
 			Ok (detect::FileType::Avi) => {
 				println! ("{file_display:<max_len$} audio video interleve");
 			},
@@ -31,7 +32,7 @@ pub fn invoke (args: Args) -> anyhow::Result <()> {
 				println! ("{file_display:<max_len$} iso media");
 			},
 			Ok (detect::FileType::Matroska) => {
-				let info = matroska_info (file_path)
+				let info = matroska_info (& mut file)
 					.unwrap_or_else (|err| format! ("error: {err}"));
 				println! ("{file_display:<max_len$} matroska {info}");
 			},
@@ -61,9 +62,8 @@ pub fn invoke (args: Args) -> anyhow::Result <()> {
     Ok (())
 }
 
-fn matroska_info (path: & Path) -> anyhow::Result <String> {
+fn matroska_info (file: impl BufRead + Seek) -> anyhow::Result <String> {
 
-	let file = BufReader::new (File::open (path) ?);
 	let mut reader = matroska::Reader::new (file) ?;
 	let tracks = reader.tracks () ?;
 
