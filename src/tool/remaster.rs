@@ -26,6 +26,9 @@ pub struct Args {
 	#[ clap (long, help = "Apply deshake filter" ) ]
 	video_deshake: bool,
 
+	#[ clap (long, help = "Set aspect ratio") ]
+	video_aspect: Option <String>,
+
 	#[ clap (long, help = "Show more detailed information" ) ]
 	verbose: bool,
 
@@ -129,6 +132,10 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 		command.push ("yuv420p10le".into ());
 		command.push ("-map_metadata:s:v:0".into ());
 		command.push ("0:s:v:0".into ());
+		if let Some (ref video_aspect) = args.video_aspect {
+			command.push ("-aspect:v:0".into ());
+			command.push (video_aspect.into ());
+		}
 		let mut video_filters: Vec <OsString> = Vec::new ();
 		if args.video_deinterlace {
 			dest_name.push ("-deinterlace");
