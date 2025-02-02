@@ -268,6 +268,7 @@ pub fn probe (file_path: & Path) -> anyhow::Result <Info> {
 		streams: data.streams.iter ()
 			.map (|stream| Ok (Stream {
 				stream_type: match & * stream.codec_type {
+					"attachment" => StreamType::Attachment,
 					"audio" => StreamType::Audio,
 					"data" => StreamType::Data,
 					"subtitle" => StreamType::Subtitle,
@@ -294,6 +295,7 @@ pub struct Stream {
 
 #[ derive (Clone, Copy, Debug, Eq, PartialEq) ]
 pub enum StreamType {
+	Attachment,
 	Audio,
 	Data,
 	Subtitle,
