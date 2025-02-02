@@ -2,6 +2,7 @@ use crate::imports::*;
 
 #[ derive (Clone, Copy, Debug) ]
 pub enum FileType {
+	AppleVideo,
 	Avi,
 	IsoMedia,
 	Matroska,
@@ -38,6 +39,7 @@ impl FileType {
 			if & buf [8 .. 12] == b"isom" { return Ok (FileType::IsoMedia) }
 			if & buf [8 .. 12] == b"mp41" { return Ok (FileType::Mp4v1) }
 			if & buf [8 .. 12] == b"mp42" { return Ok (FileType::Mp4v2) }
+			if & buf [8 .. 12] == b"M4V " { return Ok (FileType::AppleVideo) }
 			return Err (IdentifyError::partial (format! (
 				"Unknown ISOM file type: {:02x} {:02x} {:02x} {:02x}",
 				buf [8], buf [9], buf [10], buf [11])));
@@ -52,6 +54,7 @@ impl FileType {
 
 	pub fn needs_timestamp (self) -> bool {
 		match self {
+			Self::AppleVideo => false,
 			Self::Avi => true,
 			Self::IsoMedia => false,
 			Self::Matroska => false,

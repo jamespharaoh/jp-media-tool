@@ -20,42 +20,45 @@ pub fn invoke (args: Args) -> anyhow::Result <()> {
 	for file_path in & args.files {
 		let file_display = file_path.display ();
 		if file_path.is_dir () {
-			println! ("{file_display:<max_len$} directory");
+			println! ("{file_display:<max_len$}  directory");
 			continue;
 		}
 		let mut file = BufReader::new (File::open (file_path) ?);
 		match detect::FileType::identify_reader (& mut file) {
+			Ok (detect::FileType::AppleVideo) => {
+				println! ("{file_display:<max_len$}  apple video");
+			},
 			Ok (detect::FileType::Avi) => {
-				println! ("{file_display:<max_len$} audio video interleve");
+				println! ("{file_display:<max_len$}  audio video interleve");
 			},
 			Ok (detect::FileType::IsoMedia) => {
-				println! ("{file_display:<max_len$} iso media");
+				println! ("{file_display:<max_len$}  iso media");
 			},
 			Ok (detect::FileType::Matroska) => {
 				let info = matroska_info (& mut file)
 					.unwrap_or_else (|err| format! ("error: {err}"));
-				println! ("{file_display:<max_len$} matroska {info}");
+				println! ("{file_display:<max_len$}  matroska {info}");
 			},
 			Ok (detect::FileType::Mpeg1) => {
-				println! ("{file_display:<max_len$} mpeg base media v1");
+				println! ("{file_display:<max_len$}  mpeg base media v1");
 			},
 			Ok (detect::FileType::Mpeg2) => {
-				println! ("{file_display:<max_len$} mpeg base media v2");
+				println! ("{file_display:<max_len$}  mpeg base media v2");
 			},
 			Ok (detect::FileType::Mp4v1) => {
-				println! ("{file_display:<max_len$} mpeg-4 v1");
+				println! ("{file_display:<max_len$}  mpeg-4 v1");
 			},
 			Ok (detect::FileType::Mp4v2) => {
-				println! ("{file_display:<max_len$} mpeg-4 v2");
+				println! ("{file_display:<max_len$}  mpeg-4 v2");
 			},
 			Err (detect::IdentifyError::PartiallyRecognised (err)) => {
-				println! ("{file_display:<max_len$} error: {err}");
+				println! ("{file_display:<max_len$}  error: {err}");
 			},
 			Err (detect::IdentifyError::NotRecognised) => {
-				println! ("{file_display:<max_len$} unknown");
+				println! ("{file_display:<max_len$}  unknown");
 			},
 			Err (detect::IdentifyError::IoError (err)) => {
-				println! ("{file_display:<max_len$} error: {err}");
+				println! ("{file_display:<max_len$}  error: {err}");
 			},
 		}
 	}
