@@ -84,6 +84,7 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <()> {
 					.filter (|stream| stream.stream_type == ffmpeg::StreamType::Subtitle)
 					.enumerate () {
 			let Some (codec) = (match & * subs_stream.codec_name {
+				"ass" => Some ("copy"),
 				"mov_text" => Some ("srt"),
 				"subrip" => Some ("copy"),
 				codec => any_bail! ("Unknown subtitle codec: {codec}"),
