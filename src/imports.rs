@@ -15,6 +15,7 @@ pub use std::ffi::OsStr;
 pub use std::ffi::OsString;
 pub use std::fmt;
 pub use std::fmt::Debug;
+pub use std::fmt::Write as _;
 pub use std::fs::File;
 pub use std::io;
 pub use std::io::BufRead;

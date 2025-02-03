@@ -1,0 +1,2 @@
+#!/bin/bash -e
+nano Cargo.toml $(find src -name '*.rs' -type f | sort)

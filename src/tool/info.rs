@@ -65,10 +65,38 @@ pub fn invoke (args: Args) -> anyhow::Result <()> {
     Ok (())
 }
 
-fn matroska_info (file: impl BufRead + Seek) -> anyhow::Result <String> {
+fn fmt_size (size: u64) -> String {
+	if size < 1024 {
+		format! ("{size}B")
+	} else if size < 1_048_576 {
+		format! ("{:.2}KiB", size as f64 / 1_024.0)
+	} else if size < 1_073_741_824 {
+		format! ("{:.2}MiB", size as f64 / 1_048_576.0)
+	} else if size < 1_099_511_627_776 {
+		format! ("{:.2}GiB", size as f64 / 1_073_741_824.0)
+	} else {
+		format! ("{:.2}TiB", size as f64 / 1_099_511_627_776.0)
+	}
+}
+
+fn matroska_info (mut file: impl BufRead + Seek) -> anyhow::Result <String> {
+
+	let file_size = file.seek (SeekFrom::End (0)) ?;
+	let mut result = fmt_size (file_size);
 
 	let mut reader = matroska::Reader::new (file) ?;
+	let info = reader.segment_info () ?;
 	let tracks = reader.tracks () ?;
+
+	if let Some (duration_ticks) = info.duration {
+		let duration = (info.timestamp_scale as f64 * duration_ticks / 1_000_000_000.0) as u64;
+		let _ = write! (
+			& mut result,
+			", {hour}:{minute:02}:{second:02}",
+			hour = duration / 3600,
+			minute = duration / 60 % 60,
+			second = duration % 60);
+	}
 
 	let Some (video_track) = tracks.entries.iter ()
 			.find (|track| track.track_type == 1)
@@ -76,8 +104,9 @@ fn matroska_info (file: impl BufRead + Seek) -> anyhow::Result <String> {
 	let Some (video_track_video) = video_track.video.as_ref ()
 		else { any_bail! ("Video track details missing") };
 
-	let mut result = format! (
-		"{codec} {width}×{height}",
+	let _ = write! (
+		& mut result,
+		", {codec} {width}×{height}",
 		codec = matroska_codec_name (& video_track.codec_id),
 		width = video_track_video.pixel_width,
 		height = video_track_video.pixel_height);
