@@ -16,9 +16,8 @@ pub struct Args {
 		help = "Video quality setting (CRF) for x265 encoder (lower is better)") ]
 	video_quality: Option <i32>,
 
-	#[ clap (long, value_parser = clap::value_parser! (i32).range (1 ..= 10),
-		help = "Apply denoise filter, value controls luma and chroma spatial parameter") ]
-	video_denoise: Option <i32>,
+	#[ clap (long, help = "Apply denoise filter") ]
+	video_denoise: Option <String>,
 
 	#[ clap (long, help = "Apply deinterlace filter" ) ]
 	video_deinterlace: bool,
@@ -141,9 +140,9 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 			dest_name.push ("-deinterlace");
 			video_filters.push ("yadif=0".into ());
 		}
-		if let Some (& video_denoise) = args.video_denoise.as_ref () {
+		if let Some (ref video_denoise) = args.video_denoise.as_ref () {
 			dest_name.push (format! ("-denoise-{video_denoise}"));
-			video_filters.push (format! ("hqdn3d={video_denoise}:{video_denoise}:6:6").into ());
+			video_filters.push (format! ("hqdn3d={video_denoise}").into ());
 		}
 		if args.video_deshake {
 			dest_name.push ("-deshake");
