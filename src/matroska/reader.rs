@@ -9,6 +9,7 @@ pub struct Reader <Src: BufRead + Seek> {
 	segment_pos: u64,
 	segment_info: Option <Arc <matroska::InfoElem>>,
 	tracks: Option <Arc <matroska::TracksElem>>,
+	tags: Option <Arc <matroska::TagsElem>>,
 }
 
 impl <Src: BufRead + Seek> Reader <Src> {
@@ -62,6 +63,7 @@ impl <Src: BufRead + Seek> Reader <Src> {
 			segment_pos,
 			segment_info: None,
 			tracks: None,
+			tags: None,
 		})
 
 	}
@@ -115,6 +117,26 @@ impl <Src: BufRead + Seek> Reader <Src> {
 		let tracks = Arc::new (matroska::TracksElem::read (& mut self.reader) ?);
 		self.tracks = Some (Arc::clone (& tracks));
 		Ok (tracks)
+	}
+
+	pub fn tags (& mut self) -> anyhow::Result <Arc <matroska::TagsElem>> {
+		if let Some (tags) = self.tags.as_ref () {
+			return Ok (Arc::clone (tags));
+		}
+		let Some (seek_tags) =
+			self.seek_head.seeks.iter ()
+				.find (|seek| seek.id == matroska::elems::TAGS)
+		else { any_bail! ("Tags not found in seek head") };
+		self.reader.jump (self.segment_pos + seek_tags.position) ?;
+		let Some ((tags_id, _, _)) = self.reader.read () ? else {
+			any_bail! ("Error reading tags");
+		};
+		anyhow::ensure! (
+			tags_id == matroska::elems::TAGS,
+			"Expected Tags, got 0x{tags_id}");
+		let tags = Arc::new (matroska::TagsElem::read (& mut self.reader) ?);
+		self.tags = Some (Arc::clone (& tags));
+		Ok (tags)
 	}
 
 }

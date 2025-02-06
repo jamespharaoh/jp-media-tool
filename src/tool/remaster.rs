@@ -186,7 +186,7 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 		audio_mappings.push (src_idx);
 	}
 
-	if audio_mappings.is_empty () {
+	if audio_mappings.is_empty () && ! audio_tracks.is_empty () {
 		if args.verbose { eprintln! ("Adding first audio track as none were selected"); }
 		audio_mappings.push (0);
 	}
