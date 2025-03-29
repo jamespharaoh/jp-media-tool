@@ -146,6 +146,7 @@ fn matroska_codec_name (codec_id: & str) -> & str {
 		"V_MPEG4/ISO/ASP" => "mpeg4/asp",
 		"V_MPEG4/ISO/AVC" => "mpeg4/avc",
 		"V_MPEGH/ISO/HEVC" => "mpeg4/hevc",
+		"V_MS/VFW/FOURCC" => "ms-vcm",
 		_ => codec_id,
 	}
 }
