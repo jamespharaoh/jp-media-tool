@@ -85,6 +85,7 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <()> {
 					.enumerate () {
 			let Some (codec) = (match & * subs_stream.codec_name {
 				"ass" => Some ("copy"),
+				"dvd_subtitle" => any_bail! ("Can't convert DVD subtitles to text, consider --skip-subs"),
 				"mov_text" => Some ("srt"),
 				"subrip" => Some ("copy"),
 				codec => any_bail! ("Unknown subtitle codec: {codec}"),
