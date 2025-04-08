@@ -31,6 +31,9 @@ pub struct Args {
 	#[ clap (long, help = "Apply video equalisation") ]
 	video_eq: Option <String>,
 
+	#[ clap (long, help = "Rescale video") ]
+	video_rescale: Option <String>,
+
 	#[ clap (long, help = "Show more detailed information" ) ]
 	verbose: bool,
 
@@ -115,7 +118,10 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 		tracks.entries.iter ()
 			.filter (|track| track.track_type == 1)
 			.collect ();
-	let Some (_video_track) = video_tracks.get (0) else {
+	let Some (video_track) = video_tracks.get (0) else {
+		any_bail! ("No video tracks found");
+	};
+	let Some (ref video_track_video) = video_track.video else {
 		any_bail! ("No video tracks found");
 	};
 
@@ -142,6 +148,22 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 		if args.video_deinterlace {
 			dest_name.push ("-deinterlace");
 			video_filters.push ("yadif=0".into ());
+		}
+		if let Some (ref video_rescale) = args.video_rescale {
+			let (target_w, target_h) = match video_rescale.as_str () {
+				"1080p" => (1920, 1080),
+				_ => any_bail! ("Unrecognised value for --video-rescale: {video_rescale}"),
+			};
+			let old_w = video_track_video.pixel_width;
+			let old_h = video_track_video.pixel_height;
+			let mut new_w = target_w;
+			let mut new_h = target_w * old_h / old_w / 4 * 4;
+			if target_h < new_h {
+				new_h = target_h;
+				new_w = target_h * old_w / old_h / 4 * 4;
+			}
+			dest_name.push (format! ("-rescale-{target_w}-{target_h}"));
+			video_filters.push (format! ("scale={new_w}:{new_h}").into ());
 		}
 		if let Some (ref video_denoise) = args.video_denoise.as_ref () {
 			dest_name.push (format! ("-denoise-{video_denoise}"));
