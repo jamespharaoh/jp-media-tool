@@ -28,6 +28,9 @@ pub struct Args {
 	#[ clap (long, help = "Set aspect ratio") ]
 	video_aspect: Option <String>,
 
+	#[ clap (long, help = "Apply video equalisation") ]
+	video_eq: Option <String>,
+
 	#[ clap (long, help = "Show more detailed information" ) ]
 	verbose: bool,
 
@@ -147,6 +150,10 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 		if args.video_deshake {
 			dest_name.push ("-deshake");
 			video_filters.push ("deshake".into ());
+		}
+		if let Some (ref video_eq) = args.video_eq {
+			dest_name.push (format! ("-eq-{video_eq}"));
+			video_filters.push (format! ("eq={video_eq}").into ());
 		}
 		if ! video_filters.is_empty () {
 			command.push ("-filter:v:0".into ());
