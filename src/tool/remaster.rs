@@ -154,16 +154,20 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 				"1080p" => (1920, 1080),
 				_ => any_bail! ("Unrecognised value for --video-rescale: {video_rescale}"),
 			};
+			// TODO don't always round down
+			// TODO verify if 4 is the right rounding here
 			let old_w = video_track_video.pixel_width;
 			let old_h = video_track_video.pixel_height;
-			let mut new_w = target_w;
-			let mut new_h = target_w * old_h / old_w / 4 * 4;
-			if target_h < new_h {
-				new_h = target_h;
-				new_w = target_h * old_w / old_h / 4 * 4;
+			if target_w < old_w || target_h < old_h {
+				let mut new_w = target_w;
+				let mut new_h = target_w * old_h / old_w / 4 * 4;
+				if target_h < new_h {
+					new_h = target_h;
+					new_w = target_h * old_w / old_h;
+				}
+				dest_name.push (format! ("-rescale-{target_w}-{target_h}"));
+				video_filters.push (format! ("scale={new_w}:{new_h}").into ());
 			}
-			dest_name.push (format! ("-rescale-{target_w}-{target_h}"));
-			video_filters.push (format! ("scale={new_w}:{new_h}").into ());
 		}
 		if let Some (ref video_denoise) = args.video_denoise.as_ref () {
 			dest_name.push (format! ("-denoise-{video_denoise}"));
