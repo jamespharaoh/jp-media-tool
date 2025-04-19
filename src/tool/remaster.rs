@@ -34,6 +34,9 @@ pub struct Args {
 	#[ clap (long, help = "Rescale video") ]
 	video_rescale: Option <String>,
 
+	#[ clap (long, help = "Apply crop filter") ]
+	video_crop: Option <String>,
+
 	#[ clap (long, help = "Show more detailed information" ) ]
 	verbose: bool,
 
@@ -141,10 +144,15 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 		command.push ("-map_metadata:s:v:0".into ());
 		command.push ("0:s:v:0".into ());
 		if let Some (ref video_aspect) = args.video_aspect {
+			dest_name.push ("-aspect");
 			command.push ("-aspect:v:0".into ());
 			command.push (video_aspect.into ());
 		}
 		let mut video_filters: Vec <OsString> = Vec::new ();
+		if let Some (ref video_crop) = args.video_crop {
+			dest_name.push ("-crop");
+			video_filters.push (format! ("crop={video_crop}").into ());
+		}
 		if args.video_deinterlace {
 			dest_name.push ("-deinterlace");
 			video_filters.push ("yadif=0".into ());
