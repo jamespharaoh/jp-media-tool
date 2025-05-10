@@ -253,6 +253,7 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 			command.push (match track_audio.channels {
 				1 => "64k",
 				2 => "128k",
+				3 => "192k",
 				4 => "224k",
 				5 => "256k",
 				6 => "256k",
