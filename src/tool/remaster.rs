@@ -259,6 +259,10 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <bool> {
 				8 => "320k",
 				_ => any_bail! ("Unable to map {} audio channels", track_audio.channels),
 			}.into ());
+			if track_audio.channels == 5 {
+				command.push (format! ("-filter:a:{dest_idx}").into ());
+				command.push ("channelmap=channel_layout=5.0".into ());
+			}
 			if track_audio.channels == 6 {
 				command.push (format! ("-filter:a:{dest_idx}").into ());
 				command.push ("channelmap=channel_layout=5.1".into ());
