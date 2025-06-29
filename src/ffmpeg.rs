@@ -290,7 +290,7 @@ pub struct Info {
 #[ derive (Debug) ]
 pub struct Stream {
 	pub stream_type: StreamType,
-	pub codec_name: String,
+	pub codec_name: Option <String>,
 }
 
 #[ derive (Clone, Copy, Debug, Eq, PartialEq) ]
@@ -317,6 +317,6 @@ struct FfFormat {
 
 #[ derive (Debug, Deserialize) ]
 struct FfStream {
-	codec_name: String,
+	codec_name: Option <String>,
 	codec_type: String,
 }

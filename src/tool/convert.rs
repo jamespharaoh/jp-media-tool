@@ -83,12 +83,13 @@ fn invoke_one (args: & Args, file_path: & Path) -> anyhow::Result <()> {
 				probe.streams.iter ()
 					.filter (|stream| stream.stream_type == ffmpeg::StreamType::Subtitle)
 					.enumerate () {
-			let Some (codec) = (match & * subs_stream.codec_name {
-				"ass" => Some ("copy"),
-				"dvd_subtitle" => any_bail! ("Can't convert DVD subtitles to text, consider --skip-subs"),
-				"mov_text" => Some ("srt"),
-				"subrip" => Some ("copy"),
-				codec => any_bail! ("Unknown subtitle codec: {codec}"),
+			let Some (codec) = (match subs_stream.codec_name.as_ref ().map (String::as_str) {
+				Some ("ass") => Some ("copy"),
+				Some ("dvd_subtitle") => any_bail! ("Can't convert DVD subtitles to text, consider --skip-subs"),
+				Some ("mov_text") => Some ("srt"),
+				Some ("subrip") => Some ("copy"),
+				Some (codec) => any_bail! ("Unknown subtitle codec: {codec}"),
+				None => any_bail! ("No codec for subtitle track"),
 			}) else { continue };
 			command.push ("-map".into ());
 			command.push (format! ("0:s:{subs_idx}").into ());
